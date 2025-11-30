@@ -36,8 +36,7 @@ provider:
     # Read TABLE_NAME from pedidos-backend and EVENT_BUS from kfc-workflow
     TABLE_NAME: ${cf:pedidos-api-${opt:stage, 'dev'}.PedidosTableName}
     EVENT_BUS: ${cf:kfc-workflow-${opt:stage, 'dev'}.OrdersEventBusName, 'orders-bus'}
-    AWS_REGION: ${self:provider.region}
-    SNS_TOPIC_ARN: ${cf:kfc-integraciones-${opt:stage, 'dev'}.OrdersNotificationsTopicArn, ''}
+    # Function-specific environment is set for SNS topic; avoid reserved keys at provider level
 
 resources:
   Resources:
@@ -112,3 +111,6 @@ functions:
   notification_handler:
     handler: notifications.lambda_handler
     description: Handles ORDER.PAID and ORDER.READY events for customer notifications
+    environment:
+      SNS_TOPIC_ARN:
+        Ref: OrdersNotificationsTopic

@@ -14,7 +14,7 @@ from botocore.exceptions import ClientError
 
 # AWS clients
 dynamodb = boto3.resource('dynamodb')
-sns = boto3.client('sns', region_name=os.environ.get('AWS_REGION', 'us-east-1'))
+sns = boto3.client('sns')
 
 # Configuration
 SNS_TOPIC_ARN = os.environ.get('SNS_TOPIC_ARN', '')
