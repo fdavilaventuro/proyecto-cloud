@@ -41,30 +41,15 @@ functions:
   pagos:
     handler: lambdas/1_pagos.lambda_handler
     name: kfc-workflow-pagos
-    description: Procesa pago simulado
-
-  cocina:
-    handler: lambdas/2_cocina.lambda_handler
-    name: kfc-workflow-cocina
-    description: Cocina el pedido
-
-  empaque:
-    handler: lambdas/3_empaque.lambda_handler
-    name: kfc-workflow-empaque
-    description: Empaqueta el pedido
-
-  delivery:
-    handler: lambdas/4_delivery.lambda_handler
-    name: kfc-workflow-delivery
-    description: Asigna motorizado
+    description: Procesa pago simulado (automated)
 
 stepFunctions:
   stateMachines:
     KfcOrderFlow:
       name: KfcOrderWorkflow
-      role: arn:aws:iam::${file(../serverless.vars.yml):accountId}:role/${file(../serverless.vars.yml):labRole} # especificar labrole
+      role: arn:aws:iam::${file(../serverless.vars.yml):accountId}:role/${file(../serverless.vars.yml):labRole}
       definition:
-        Comment: "Workflow KFC: Pagos -> Cocina -> Empaque -> Delivery"
+        Comment: "Workflow KFC: Payment Processing Only (Kitchen/Packing/Delivery handled by employee frontend)"
         StartAt: Procesar Pago
         States:
           Procesar Pago:
@@ -82,31 +67,16 @@ stepFunctions:
             Choices:
               - Variable: "$.status"
                 StringEquals: "PAID"
-                Next: Cocinar Pedido
+                Next: Pago Exitoso
             Default: Pago Fallido
+
+          Pago Exitoso:
+            Type: Succeed
 
           Pago Fallido:
             Type: Fail
             Error: PaymentError
             Cause: "El pago no fue autorizado."
-
-          Cocinar Pedido:
-            Type: Task
-            Resource:
-              Fn::GetAtt: [CocinaLambdaFunction, Arn]
-            Next: Empaquetar Pedido
-
-          Empaquetar Pedido:
-            Type: Task
-            Resource:
-              Fn::GetAtt: [EmpaqueLambdaFunction, Arn]
-            Next: Asignar Delivery
-
-          Asignar Delivery:
-            Type: Task
-            Resource:
-              Fn::GetAtt: [DeliveryLambdaFunction, Arn]
-            End: true
 
 plugins:
   - serverless-step-functions

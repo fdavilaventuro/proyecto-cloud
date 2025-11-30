@@ -132,6 +132,46 @@ functions:
             identitySource: method.request.header.Authorization
             resultTtlInSeconds: 0
 
+  # Employee endpoints for manual status updates
+  kitchenReady:
+    handler: lambdas.pedidos.employee.mark_kitchen_ready
+    events:
+      - http:
+          path: /employee/order/{id}/kitchen-ready
+          method: put
+          cors: true
+          authorizer:
+            type: token
+            name: autorizador
+            identitySource: method.request.header.Authorization
+            resultTtlInSeconds: 0
+
+  packed:
+    handler: lambdas.pedidos.employee.mark_packed
+    events:
+      - http:
+          path: /employee/order/{id}/packed
+          method: put
+          cors: true
+          authorizer:
+            type: token
+            name: autorizador
+            identitySource: method.request.header.Authorization
+            resultTtlInSeconds: 0
+
+  delivering:
+    handler: lambdas.pedidos.employee.assign_delivery
+    events:
+      - http:
+          path: /employee/order/{id}/deliver
+          method: put
+          cors: true
+          authorizer:
+            type: token
+            name: autorizador
+            identitySource: method.request.header.Authorization
+            resultTtlInSeconds: 0
+
 resources:
   Resources:
     PedidosTable:

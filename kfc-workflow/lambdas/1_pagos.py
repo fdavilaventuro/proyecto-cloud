@@ -4,10 +4,10 @@ import time
 import os
 from datetime import datetime
 from botocore.exceptions import ClientError
+from common.db import get_table
 
-dynamodb = boto3.resource('dynamodb')
 events = boto3.client('events')
-table = dynamodb.Table(os.environ.get('TABLE_NAME', 'Orders'))
+table = get_table()
 event_bus = os.environ.get('EVENT_BUS', 'orders-bus')
 
 def lambda_handler(event, context):
