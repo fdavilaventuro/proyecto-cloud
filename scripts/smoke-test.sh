@@ -64,7 +64,7 @@ fi
 echo "Using API: $ApiUrl"
 
 # Create order
-body='{"storeId":"S1","client":"Test User","address":"123 Main","total":15.5,"items":[{"productId":"P1","qty":1,"price":15.5}]}'
+body='{"storeId":"S1","client":"Test User","address":"123 Main","total":15,"items":[{"productId":"P1","qty":1,"price":15}]}'
 
 echo "Creating order..."
 echo "POST $ApiUrl/order"
