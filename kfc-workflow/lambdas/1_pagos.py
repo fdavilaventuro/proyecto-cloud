@@ -38,20 +38,39 @@ def lambda_handler(event, context):
     if 'Sin Fondos' in client or 'sin fondos' in client.lower():
         print(f"Pago RECHAZADO para orden {order_id} - Cliente: {client}, Total: {total}")
         # Actualizar estado a REJECTED
-        try:
-            table.update_item(
-                Key={'id': order_id},
-                UpdateExpression="SET #s = :status, updatedAt = :now",
-                ExpressionAttributeNames={'#s': 'status'},
-                ExpressionAttributeValues={
-                    ':status': 'PAYMENT_REJECTED',
-                    ':now': datetime.now().isoformat()
-                },
-                ConditionExpression='attribute_exists(id)'
-            )
-            print(f"Orden {order_id} actualizada a PAYMENT_REJECTED en DynamoDB")
-        except Exception as e:
-            print(f"Error actualizando DynamoDB: {str(e)}")
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                table.update_item(
+                    Key={'id': order_id},
+                    UpdateExpression="SET #s = :status, updatedAt = :now",
+                    ExpressionAttributeNames={'#s': 'status'},
+                    ExpressionAttributeValues={
+                        ':status': 'PAYMENT_REJECTED',
+                        ':now': datetime.now().isoformat()
+                    },
+                    ConditionExpression='attribute_exists(id)'
+                )
+                print(f"Orden {order_id} actualizada a PAYMENT_REJECTED en DynamoDB")
+                break
+            except ClientError as e:
+                # If conditional check failed, the item might not exist yet; retry a few times
+                code = e.response.get('Error', {}).get('Code')
+                if code == 'ConditionalCheckFailedException' and attempt < max_retries - 1:
+                    print(f"ConditionalCheckFailedException on PAYMENT_REJECTED update for {order_id}, retrying (attempt {attempt+1})")
+                    try:
+                        resp = table.get_item(Key={'id': order_id})
+                        print(f"Debug get_item during retry: {'found' if 'Item' in resp else 'not found'} for {order_id}")
+                    except Exception as ie:
+                        print(f"Debug: get_item failed during retry: {ie}")
+                    time.sleep(0.5 * (2 ** attempt))
+                    continue
+                else:
+                    print(f"Error actualizando DynamoDB: {str(e)}")
+                    break
+            except Exception as e:
+                print(f"Error actualizando DynamoDB: {str(e)}")
+                break
         
         # Retornar estado rechazado para que el workflow lo maneje
         event['status'] = 'PAYMENT_REJECTED'
@@ -62,18 +81,40 @@ def lambda_handler(event, context):
     
     # 2. Actualizar DynamoDB con el estado PAID
     try:
-        table.update_item(
-            Key={'id': order_id},
-            UpdateExpression="SET #s = :status, paymentId = :pid, updatedAt = :now",
-            ExpressionAttributeNames={'#s': 'status'},
-            ExpressionAttributeValues={
-                ':status': 'PAID',
-                ':pid': payment_id,
-                ':now': datetime.now().isoformat()
-            },
-            ConditionExpression='attribute_exists(id)'  # La orden debe existir
-        )
-        print(f"Orden {order_id} actualizada a PAID en DynamoDB")
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                table.update_item(
+                    Key={'id': order_id},
+                    UpdateExpression="SET #s = :status, paymentId = :pid, updatedAt = :now",
+                    ExpressionAttributeNames={'#s': 'status'},
+                    ExpressionAttributeValues={
+                        ':status': 'PAID',
+                        ':pid': payment_id,
+                        ':now': datetime.now().isoformat()
+                    },
+                    ConditionExpression='attribute_exists(id)'  # La orden debe existir
+                )
+                print(f"Orden {order_id} actualizada a PAID en DynamoDB")
+                break
+            except ClientError as e:
+                code = e.response.get('Error', {}).get('Code')
+                if code == 'ConditionalCheckFailedException' and attempt < max_retries - 1:
+                    # Item may not be available yet - log and retry
+                    print(f"ConditionalCheckFailedException on PAID update for {order_id}, retrying (attempt {attempt+1})")
+                    try:
+                        resp = table.get_item(Key={'id': order_id})
+                        if 'Item' in resp:
+                            print(f"Debug: get_item found item for {order_id} during retry: {resp.get('Item')}")
+                        else:
+                            print(f"Debug: get_item returned no Item for {order_id} during retry")
+                    except Exception as ie:
+                        print(f"Debug: get_item failed during retry: {ie}")
+                    time.sleep(0.5 * (2 ** attempt))
+                    continue
+                else:
+                    # Re-raise non-conditional errors
+                    raise
     except ClientError as e:
         if e.response['Error']['Code'] == 'ConditionalCheckFailedException':
             error_msg = f"Orden {order_id} no existe en DynamoDB. Debe ser creada por el backend primero."
