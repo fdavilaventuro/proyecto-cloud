@@ -7,6 +7,7 @@ Future enhancements:
 - Push notifications to mobile app
 - Update analytics/reporting systems
 """
+import json
 import boto3
 import os
 from datetime import datetime
@@ -18,7 +19,6 @@ sns = boto3.client('sns')
 
 # Configuration
 SNS_TOPIC_ARN = os.environ.get('SNS_TOPIC_ARN', '')
-TABLE_NAME = os.environ.get('TABLE_NAME', 'Orders')
 TABLE_NAME = os.environ.get('TABLE_NAME', 'Orders')
 
 # Email templates for different event types
