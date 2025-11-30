@@ -29,14 +29,11 @@ def mark_kitchen_ready(event, context):
             Key={'id': order_id},
             UpdateExpression="SET #s = :status, updatedAt = :now",
             ExpressionAttributeNames={'#s': 'status'},
-            ExpressionAttributeValues={
-                ':status': 'KITCHEN_READY',
-                ':now': datetime.now().isoformat()
-            },
             ConditionExpression='attribute_exists(id) AND #s = :current_status',
             ExpressionAttributeValues={
-                **{':status': 'KITCHEN_READY', ':now': datetime.now().isoformat()},
-                ':current_status': 'PAID'  # Only allow transition from PAID
+                ':status': 'KITCHEN_READY',
+                ':now': datetime.now().isoformat(),
+                ':current_status': 'PAID'
             },
             ReturnValues='ALL_NEW'
         )
