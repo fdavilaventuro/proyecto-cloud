@@ -7,7 +7,6 @@ Future enhancements:
 - Push notifications to mobile app
 - Update analytics/reporting systems
 """
-import json
 import boto3
 import os
 from datetime import datetime
@@ -15,10 +14,11 @@ from botocore.exceptions import ClientError
 
 # AWS clients
 dynamodb = boto3.resource('dynamodb')
-ses = boto3.client('ses', region_name=os.environ.get('AWS_REGION', 'us-east-1'))
+sns = boto3.client('sns', region_name=os.environ.get('AWS_REGION', 'us-east-1'))
 
 # Configuration
-SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'fabio.davila@utec.edu.pe')
+SNS_TOPIC_ARN = os.environ.get('SNS_TOPIC_ARN', '')
+TABLE_NAME = os.environ.get('TABLE_NAME', 'Orders')
 TABLE_NAME = os.environ.get('TABLE_NAME', 'Orders')
 
 # Email templates for different event types
@@ -72,45 +72,24 @@ def get_order_details(order_id):
 
 def send_email_notification(recipient, subject, body):
     """
-    Send email via Amazon SES.
-    
-    Note: AWS Academy LabRole doesn't have SES permissions.
-    For demo purposes, this logs the email content instead of sending.
-    In production with proper AWS account, uncomment the ses.send_email() code.
+    Send notification via Amazon SNS email subscription.
+    - SNS topic must have the recipient subscribed (protocol=email) and confirmed.
+    - For academic project, we publish to a shared topic to deliver emails to subscribed testers.
     """
-    try:
-        # AWS Academy restriction: SES not available
-        # Simulate email sending by logging
-        print("=" * 60)
-        print("📧 EMAIL NOTIFICATION (SIMULATED - SES NOT AVAILABLE)")
-        print("=" * 60)
-        print(f"To: {recipient}")
-        print(f"Subject: {subject}")
-        print("-" * 60)
-        print(body)
-        print("=" * 60)
-        
-        # TODO: Uncomment when deploying to production AWS account with SES access
-        # response = ses.send_email(
-        #     Source=SENDER_EMAIL,
-        #     Destination={'ToAddresses': [recipient]},
-        #     Message={
-        #         'Subject': {'Data': subject, 'Charset': 'UTF-8'},
-        #         'Body': {'Text': {'Data': body, 'Charset': 'UTF-8'}}
-        #     }
-        # )
-        # print(f"✅ Email sent to {recipient}, MessageId: {response['MessageId']}")
-        
-        return True
-    except ClientError as e:
-        error_code = e.response['Error']['Code']
-        if error_code == 'MessageRejected':
-            print(f"⚠️  Email rejected (recipient not verified in SES sandbox): {recipient}")
-        else:
-            print(f"❌ Error sending email: {e.response['Error']['Message']}")
+    if not SNS_TOPIC_ARN:
+        print("❌ SNS_TOPIC_ARN not configured; cannot publish notifications")
         return False
+    try:
+        message = f"Subject: {subject}\n\n{body}"
+        resp = sns.publish(
+            TopicArn=SNS_TOPIC_ARN,
+            Message=message,
+            Subject=subject
+        )
+        print(f"✅ SNS notification published. MessageId: {resp.get('MessageId')}")
+        return True
     except Exception as e:
-        print(f"❌ Unexpected error sending email: {str(e)}")
+        print(f"❌ Error publishing to SNS: {str(e)}")
         return False
 
 
@@ -150,8 +129,9 @@ def lambda_handler(event, context):
     address = order.get('address', 'N/A')
     driver = order.get('driver', 'Our delivery team')
     
-    # Use test email for now (in production, use order.get('email', SENDER_EMAIL))
-    recipient_email = SENDER_EMAIL  # Testing with fabio.davila@utec.edu.pe
+    # SNS delivers to all confirmed email subscriptions on the topic
+    # Recipient here is informational only
+    recipient_email = detail.get('email', 'fabio.davila@utec.edu.pe')
     
     # Format email content
     subject = template['subject'].format(orderId=order_id)

@@ -18,8 +18,18 @@ provider:
     - Effect: Allow
       Action:
         - events:PutEvents
+        OrdersNotificationsTopicArn:
+          Description: "SNS Topic ARN for order notifications"
+          Value: !Ref OrdersNotificationsTopic
+          Export:
+            Name: "OrdersNotificationsTopicArn-${opt:stage, 'dev'}"
       Resource:
         - arn:aws:events:${self:provider.region}:${file(../serverless.vars.yml):accountId}:event-bus/${self:provider.environment.EVENT_BUS}
+    - Effect: Allow
+      Action:
+        - sns:Publish
+      Resource:
+        - arn:aws:sns:${self:provider.region}:${file(../serverless.vars.yml):accountId}:orders-notifications
     - Effect: Allow
       Action:
         - logs:CreateLogGroup
@@ -31,8 +41,8 @@ provider:
     # Read TABLE_NAME from pedidos-backend and EVENT_BUS from kfc-workflow
     TABLE_NAME: ${cf:pedidos-api-${opt:stage, 'dev'}.PedidosTableName}
     EVENT_BUS: ${cf:kfc-workflow-${opt:stage, 'dev'}.OrdersEventBusName, 'orders-bus'}
-    SENDER_EMAIL: fabio.davila@utec.edu.pe
     AWS_REGION: ${self:provider.region}
+    SNS_TOPIC_ARN: ${cf:kfc-integraciones-${opt:stage, 'dev'}.OrdersNotificationsTopicArn, ''}
 
 resources:
   Resources:
@@ -85,6 +95,11 @@ resources:
         Action: lambda:InvokeFunction
         Principal: events.amazonaws.com
         SourceArn: !GetAtt OrderPaidRule.Arn
+
+    OrdersNotificationsTopic:
+      Type: AWS::SNS::Topic
+      Properties:
+        TopicName: orders-notifications
 
 functions:
 
