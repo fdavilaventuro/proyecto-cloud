@@ -9,7 +9,7 @@ import boto3
 from botocore.exceptions import ClientError
 from datetime import datetime
 from common.db import pedidos_table
-from common.response import success_response, error_response
+from common.response import json_response
 
 # EventBridge client for sending notification events
 events = boto3.client('events')
@@ -23,7 +23,7 @@ def mark_kitchen_ready(event, context):
     """
     try:
         if 'pathParameters' not in event or 'id' not in event['pathParameters']:
-            return error_response('Parámetro de ruta faltante: {id}', 400)
+            return json_response({'error': 'Parámetro de ruta faltante: {id}'}, 400)
         order_id = event['pathParameters']['id']
         table = pedidos_table()
         
@@ -41,20 +41,20 @@ def mark_kitchen_ready(event, context):
             ReturnValues='ALL_NEW'
         )
         
-        return success_response({
+        return json_response({
             'message': 'Orden marcada como lista en cocina',
             'order': response['Attributes']
-        })
+        }, 200)
         
     except ClientError as e:
         code = e.response.get('Error', {}).get('Code')
         if code == 'ConditionalCheckFailedException':
-            return error_response('Orden no encontrada o no está en estado PAID', 400)
+            return json_response({'error': 'Orden no encontrada o no está en estado PAID'}, 400)
         print(f"AWS ClientError in kitchen-ready: {repr(e)}")
-        return error_response(f'Error AWS en kitchen-ready: {code}', 500)
+        return json_response({'error': f'Error AWS en kitchen-ready: {code}'}, 500)
     except Exception as e:
         print(f"Error marking kitchen ready: {repr(e)}")
-        return error_response(f'Error interno en kitchen-ready: {type(e).__name__}: {str(e)}', 500)
+        return json_response({'error': f'Error interno en kitchen-ready: {type(e).__name__}: {str(e)}'}, 500)
 
 
 def mark_packed(event, context):
@@ -64,7 +64,7 @@ def mark_packed(event, context):
     """
     try:
         if 'pathParameters' not in event or 'id' not in event['pathParameters']:
-            return error_response('Parámetro de ruta faltante: {id}', 400)
+            return json_response({'error': 'Parámetro de ruta faltante: {id}'}, 400)
         order_id = event['pathParameters']['id']
         table = pedidos_table()
         
@@ -82,20 +82,20 @@ def mark_packed(event, context):
             ReturnValues='ALL_NEW'
         )
         
-        return success_response({
+        return json_response({
             'message': 'Orden marcada como empacada',
             'order': response['Attributes']
-        })
+        }, 200)
         
     except ClientError as e:
         code = e.response.get('Error', {}).get('Code')
         if code == 'ConditionalCheckFailedException':
-            return error_response('Orden no encontrada o no está en estado KITCHEN_READY', 400)
+            return json_response({'error': 'Orden no encontrada o no está en estado KITCHEN_READY'}, 400)
         print(f"AWS ClientError in packed: {repr(e)}")
-        return error_response(f'Error AWS en packed: {code}', 500)
+        return json_response({'error': f'Error AWS en packed: {code}'}, 500)
     except Exception as e:
         print(f"Error marking packed: {repr(e)}")
-        return error_response(f'Error interno en packed: {type(e).__name__}: {str(e)}', 500)
+        return json_response({'error': f'Error interno en packed: {type(e).__name__}: {str(e)}'}, 500)
 
 
 def assign_delivery(event, context):
@@ -107,13 +107,13 @@ def assign_delivery(event, context):
     """
     try:
         if 'pathParameters' not in event or 'id' not in event['pathParameters']:
-            return error_response('Parámetro de ruta faltante: {id}', 400)
+            return json_response({'error': 'Parámetro de ruta faltante: {id}'}, 400)
         order_id = event['pathParameters']['id']
         body_raw = event.get('body', '{}')
         try:
             body = json.loads(body_raw or '{}')
         except Exception:
-            return error_response('Body inválido: debe ser JSON', 400)
+            return json_response({'error': 'Body inválido: debe ser JSON'}, 400)
         driver = body.get('driver', 'Driver Asignado')
         
         table = pedidos_table()
@@ -148,17 +148,17 @@ def assign_delivery(event, context):
             print(f"Warning: Failed to send ORDER.READY event: {str(e)}")
             # Don't fail the request if event sending fails
         
-        return success_response({
+        return json_response({
             'message': f'Orden asignada a {driver} para entrega',
             'order': response['Attributes']
-        })
+        }, 200)
         
     except ClientError as e:
         code = e.response.get('Error', {}).get('Code')
         if code == 'ConditionalCheckFailedException':
-            return error_response('Orden no encontrada o no está en estado PACKED', 400)
+            return json_response({'error': 'Orden no encontrada o no está en estado PACKED'}, 400)
         print(f"AWS ClientError in deliver: {repr(e)}")
-        return error_response(f'Error AWS en deliver: {code}', 500)
+        return json_response({'error': f'Error AWS en deliver: {code}'}, 500)
     except Exception as e:
         print(f"Error assigning delivery: {repr(e)}")
-        return error_response(f'Error interno en deliver: {type(e).__name__}: {str(e)}', 500)
+        return json_response({'error': f'Error interno en deliver: {type(e).__name__}: {str(e)}'}, 500)
