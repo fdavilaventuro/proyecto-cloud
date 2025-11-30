@@ -15,7 +15,7 @@ provider:
         - dynamodb:UpdateItem
         - dynamodb:Query
       Resource:
-        - arn:aws:dynamodb:${self:provider.region}:${file(../serverless.vars.yml):accountId}:table/Orders
+        - arn:aws:dynamodb:${self:provider.region}:${file(../serverless.vars.yml):accountId}:table/${cf:pedidos-api-${opt:stage, 'dev'}.PedidosTableName}
     - Effect: Allow
       Action:
         - events:PutEvents
@@ -34,7 +34,7 @@ provider:
       Resource:
         - arn:aws:logs:${self:provider.region}:${file(../serverless.vars.yml):accountId}:*
   environment:
-    TABLE_NAME: ${cf:pedidos-api-${opt:stage, 'dev'}.PedidosTableName, 'Orders'}
+    TABLE_NAME: ${cf:pedidos-api-${opt:stage, 'dev'}.PedidosTableName}
     EVENT_BUS: orders-bus
 
 functions:
@@ -117,30 +117,12 @@ resources:
     # No EventBus resource needed - using pre-existing orders-bus created previously
     # If it doesn't exist, create it manually: aws events create-event-bus --name orders-bus --region us-east-1
 
-    # DynamoDB - Orders
-    OrdersTable:
-      Type: AWS::DynamoDB::Table
-      Properties:
-        TableName: Orders
-        BillingMode: PAY_PER_REQUEST
-        AttributeDefinitions:
-          - AttributeName: id
-            AttributeType: S
-        KeySchema:
-          - AttributeName: id
-            KeyType: HASH
-
   Outputs:
     KfcOrderFlowArn:
       Description: "ARN of the Step Functions state machine for KfcOrderFlow"
       Value: !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:KfcOrderWorkflow"
       Export:
         Name: "KfcOrderFlowArn-${opt:stage, 'dev'}"
-    OrdersTableName:
-      Description: "DynamoDB Orders table name"
-      Value: !Ref OrdersTable
-      Export:
-        Name: "OrdersTableName-${opt:stage, 'dev'}"
     OrdersEventBusName:
       Description: "EventBridge bus name"
       Value: orders-bus

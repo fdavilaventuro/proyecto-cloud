@@ -12,6 +12,14 @@ event_bus = os.environ.get('EVENT_BUS', 'orders-bus')
 
 def lambda_handler(event, context):
     print(f"--- INICIO PAGOS (MS Pagos) --- ID: {event.get('id')}")
+    # Debug: print which DynamoDB table name this lambda is configured to use
+    configured_table_env = os.environ.get('TABLE_NAME')
+    print(f"Configured TABLE_NAME env: {configured_table_env}")
+    # boto3 Table object exposes the table name via attribute 'table_name' on the resource.Table
+    try:
+        print(f"boto3 Table object name: {getattr(table, 'table_name', None)}")
+    except Exception:
+        pass
     
     # Validamos que llegue el ID
     if 'id' not in event:
@@ -70,6 +78,15 @@ def lambda_handler(event, context):
         if e.response['Error']['Code'] == 'ConditionalCheckFailedException':
             error_msg = f"Orden {order_id} no existe en DynamoDB. Debe ser creada por el backend primero."
             print(f"ERROR: {error_msg}")
+            # Try to read the item to gather debug information (GetItem uses allowed permission)
+            try:
+                resp = table.get_item(Key={'id': order_id})
+                if 'Item' in resp:
+                    print(f"Debug: get_item found item for {order_id}: {resp.get('Item')}")
+                else:
+                    print(f"Debug: get_item returned no Item for {order_id}")
+            except Exception as ie:
+                print(f"Debug: get_item failed: {ie}")
             raise ValueError(error_msg)
         else:
             print(f"Error actualizando DynamoDB: {str(e)}")
