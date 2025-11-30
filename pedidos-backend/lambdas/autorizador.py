@@ -2,11 +2,12 @@ import json
 
 def lambda_handler(event, context):
     print("Evento Autorizador:", json.dumps(event))
-    
+
     # API Gateway passes the Authorization header value in authorizationToken
     token = event.get('authorizationToken', '')
-    
-    if token and ('Bearer demo-token' in token or 'demo-token' in token):
+
+    # Dev/testing backdoor: allow exact demo token for smoke tests consistently
+    if token == 'Bearer demo-token':
         return {
             'principalId': 'user123',
             'policyDocument': {
@@ -23,4 +24,6 @@ def lambda_handler(event, context):
                 'user': 'demo-user'
             }
         }
+
+    # TODO: implement real token verification (JWT/OAuth) here for non-demo use
     raise Exception('Unauthorized')
