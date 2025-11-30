@@ -1,0 +1,157 @@
+org: gianaedo
+service: kfc-workflow
+
+provider:
+  name: aws
+  runtime: python3.12
+  region: us-east-1
+  iam:
+    role: arn:aws:iam::${file(../serverless.vars.yml):accountId}:role/${file(../serverless.vars.yml):labRole}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:PutItem
+        - dynamodb:GetItem
+        - dynamodb:UpdateItem
+        - dynamodb:Query
+      Resource:
+        - arn:aws:dynamodb:${self:provider.region}:${file(../serverless.vars.yml):accountId}:table/Orders
+    - Effect: Allow
+      Action:
+        - events:PutEvents
+      Resource:
+        - arn:aws:events:${self:provider.region}:${file(../serverless.vars.yml):accountId}:event-bus/${self:provider.environment.EVENT_BUS}
+    - Effect: Allow
+      Action:
+        - states:StartExecution
+      Resource:
+        - arn:aws:states:${self:provider.region}:${file(../serverless.vars.yml):accountId}:stateMachine:*
+    - Effect: Allow
+      Action:
+        - logs:CreateLogGroup
+        - logs:CreateLogStream
+        - logs:PutLogEvents
+      Resource:
+        - arn:aws:logs:${self:provider.region}:${file(../serverless.vars.yml):accountId}:*
+  environment:
+    TABLE_NAME: Orders
+    EVENT_BUS: orders-bus
+
+functions:
+  pagos:
+    handler: lambdas/1_pagos.lambda_handler
+    name: kfc-workflow-pagos
+    description: Procesa pago simulado
+
+  cocina:
+    handler: lambdas/2_cocina.lambda_handler
+    name: kfc-workflow-cocina
+    description: Cocina el pedido
+
+  empaque:
+    handler: lambdas/3_empaque.lambda_handler
+    name: kfc-workflow-empaque
+    description: Empaqueta el pedido
+
+  delivery:
+    handler: lambdas/4_delivery.lambda_handler
+    name: kfc-workflow-delivery
+    description: Asigna motorizado
+
+stepFunctions:
+  stateMachines:
+    KfcOrderFlow:
+      name: KfcOrderWorkflow
+      role: arn:aws:iam::${file(../serverless.vars.yml):accountId}:role/${file(../serverless.vars.yml):labRole} # especificar labrole
+      definition:
+        Comment: "Workflow KFC: Pagos -> Cocina -> Empaque -> Delivery"
+        StartAt: Procesar Pago
+        States:
+          Procesar Pago:
+            Type: Task
+            Resource:
+              Fn::GetAtt: [PagosLambdaFunction, Arn]
+            Next: Verificar Pago
+            Retry:
+              - ErrorEquals: ["States.TaskFailed"]
+                IntervalSeconds: 2
+                MaxAttempts: 2
+
+          Verificar Pago:
+            Type: Choice
+            Choices:
+              - Variable: "$.status"
+                StringEquals: "PAID"
+                Next: Cocinar Pedido
+            Default: Pago Fallido
+
+          Pago Fallido:
+            Type: Fail
+            Error: PaymentError
+            Cause: "El pago no fue autorizado."
+
+          Cocinar Pedido:
+            Type: Task
+            Resource:
+              Fn::GetAtt: [CocinaLambdaFunction, Arn]
+            Next: Empaquetar Pedido
+
+          Empaquetar Pedido:
+            Type: Task
+            Resource:
+              Fn::GetAtt: [EmpaqueLambdaFunction, Arn]
+            Next: Asignar Delivery
+
+          Asignar Delivery:
+            Type: Task
+            Resource:
+              Fn::GetAtt: [DeliveryLambdaFunction, Arn]
+            End: true
+
+plugins:
+  - serverless-step-functions
+
+# Testing
+resources:
+  Resources:
+    # -------------------------------
+    # DynamoDB - Orders
+    # -------------------------------
+    OrdersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: Orders
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+
+    # -------------------------------
+    # EventBridge Bus
+    # -------------------------------
+    OrdersEventBus:
+      Type: AWS::Events::EventBus
+      Properties:
+        Name: orders-bus
+  Outputs:
+    KfcOrderFlowArn:
+      Description: "ARN of the Step Functions state machine for KfcOrderFlow"
+      Value:
+        Fn::GetAtt:
+          - KfcOrderFlowStateMachine
+          - Arn
+      Export:
+        Name: "KfcOrderFlowArn-${opt:stage, 'dev'}"
+    OrdersTableName:
+      Description: "DynamoDB Orders table name"
+      Value: !Ref OrdersTable
+      Export:
+        Name: "OrdersTableName-${opt:stage, 'dev'}"
+    OrdersEventBusName:
+      Description: "EventBridge bus name"
+      Value: !Ref OrdersEventBus
+      Export:
+        Name: "OrdersEventBusName-${opt:stage, 'dev'}"

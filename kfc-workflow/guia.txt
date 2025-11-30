@@ -1,0 +1,26 @@
+npm install -g serverless
+
+plugin:
+
+npm init -y
+
+npm install serverless-step-functions --save-dev
+
+Deployar:    
+serverless deploy
+
+IMPORTANTE: Desplegar primero kfc-integraciones para crear la tabla Orders y EventBridge orders-bus
+
+Probar workflow:
+sls invoke stepf --name KfcOrderFlow --data "$(cat pedido_test.json)"
+
+Estructura del flujo:
+Input → Pagos (Stripe + EventBridge) → Verificación → Cocina → Empaque → Delivery (EventBridge) → Output
+
+Estados del pedido en DynamoDB (tabla Orders):
+PENDING → PAID → KITCHEN_READY → PACKED → DELIVERING
+
+Integraciones:
+- MS Pagos: Envía ORDER.PAID a EventBridge orders-bus
+- MS Delivery: Envía ORDER.READY a EventBridge orders-bus
+- Todos los microservicios actualizan la tabla Orders (no PedidosKFC)

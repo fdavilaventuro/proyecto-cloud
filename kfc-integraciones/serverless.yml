@@ -1,0 +1,145 @@
+org: fabioedv
+service: kfc-integraciones
+
+provider:
+  name: aws
+  runtime: python3.12
+  region: us-east-1
+  iam:
+    role: arn:aws:iam::${file(../serverless.vars.yml):accountId}:role/${file(../serverless.vars.yml):labRole}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:GetItem
+        - dynamodb:UpdateItem
+        - dynamodb:Query
+      Resource:
+        - arn:aws:dynamodb:${self:provider.region}:${file(../serverless.vars.yml):accountId}:table/${self:provider.environment.TABLE_NAME}
+    - Effect: Allow
+      Action:
+        - events:PutEvents
+      Resource:
+        - arn:aws:events:${self:provider.region}:${file(../serverless.vars.yml):accountId}:event-bus/${self:provider.environment.EVENT_BUS}
+    - Effect: Allow
+      Action:
+        - s3:GetObject
+        - s3:PutObject
+      Resource:
+        - arn:aws:s3:::kfc-assets
+        - arn:aws:s3:::kfc-assets/*
+    - Effect: Allow
+      Action:
+        - logs:CreateLogGroup
+        - logs:CreateLogStream
+        - logs:PutLogEvents
+      Resource:
+        - arn:aws:logs:${self:provider.region}:${file(../serverless.vars.yml):accountId}:*
+  environment:
+    # Read TABLE_NAME and EVENT_BUS exported by kfc-workflow stack when available
+    TABLE_NAME: ${cf:kfc-workflow-${opt:stage, 'dev'}.OrdersTableName, 'Orders'}
+    EVENT_BUS: ${cf:kfc-workflow-${opt:stage, 'dev'}.OrdersEventBusName, 'orders-bus'}
+
+resources:
+  Resources:
+
+    # Note: Orders table and EventBus are owned by `kfc-workflow`.
+    # This stack reads their names via CloudFormation exports to avoid resource duplication.
+
+    # -------------------------------
+    # S3 para imágenes
+    # -------------------------------
+    AssetsBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: kfc-assets
+        WebsiteConfiguration:
+          IndexDocument: index.html
+          ErrorDocument: error.html
+      DeletionPolicy: Retain
+
+    # -------------------------------
+    # EventBridge Rules
+    # -------------------------------
+    OrderReadyRule:
+      Type: AWS::Events::Rule
+      Properties:
+        Name: order-ready
+        EventBusName: !Sub ${self:provider.environment.EVENT_BUS}
+        EventPattern:
+          detail-type:
+            - ORDER.READY
+        Targets:
+          - Arn: !GetAtt NotificationUnderscorehandlerLambdaFunction.Arn
+            Id: notif-ready-target
+
+    OrderPaidRule:
+      Type: AWS::Events::Rule
+      Properties:
+        Name: order-paid
+        EventBusName: !Sub ${self:provider.environment.EVENT_BUS}
+        EventPattern:
+          detail-type:
+            - ORDER.PAID
+        Targets:
+          - Arn: !GetAtt NotificationUnderscorehandlerLambdaFunction.Arn
+            Id: notif-paid-target
+
+    # -------------------------------
+    # EventBridge → Lambda permissions
+    # -------------------------------
+    PermissionReady:
+      Type: AWS::Lambda::Permission
+      Properties:
+        FunctionName: !GetAtt NotificationUnderscorehandlerLambdaFunction.Arn
+        Action: lambda:InvokeFunction
+        Principal: events.amazonaws.com
+        SourceArn: !GetAtt OrderReadyRule.Arn
+
+    PermissionPaid:
+      Type: AWS::Lambda::Permission
+      Properties:
+        FunctionName: !GetAtt NotificationUnderscorehandlerLambdaFunction.Arn
+        Action: lambda:InvokeFunction
+        Principal: events.amazonaws.com
+        SourceArn: !GetAtt OrderPaidRule.Arn
+
+functions:
+
+  # -------------------------------------
+  # GET /status/{id}
+  # -------------------------------------
+  get_order_status:
+    handler: get_order_status.lambda_handler
+    events:
+      - http:
+          path: status/{id}
+          method: get
+          cors: true
+
+  # -------------------------------------
+  # POST /pay — SIMULADO
+  # -------------------------------------
+  stripe_payment:
+    handler: stripe_payment.lambda_handler
+    events:
+      - http:
+          path: pay
+          method: post
+          cors: true
+
+  # -------------------------------------
+  # POST /event/ready
+  # -------------------------------------
+  send_order_ready:
+    handler: send_event_ready.lambda_handler
+    events:
+      - http:
+          path: event/ready
+          method: post
+          cors: true
+
+  # -------------------------------------
+  # Lambda de Notificaciones
+  # -------------------------------------
+  notification_handler:
+    handler: notifications.lambda_handler

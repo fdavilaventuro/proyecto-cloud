@@ -1,0 +1,72 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "KFC Order",
+    "type": "object",
+    "required": [
+        "storeId",
+        "client",
+        "address",
+        "total",
+        "items"
+    ],
+    "properties": {
+        "id": {
+            "type": "string"
+        },
+        "orderId": {
+            "type": "string"
+        },
+        "storeId": {
+            "type": "string"
+        },
+        "client": {
+            "type": "string",
+            "description": "Customer name or identifier"
+        },
+        "address": {
+            "type": "string"
+        },
+        "total": {
+            "type": "number",
+            "minimum": 0
+        },
+        "status": {
+            "type": "string"
+        },
+        "items": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": [
+                    "productId",
+                    "qty",
+                    "price"
+                ],
+                "properties": {
+                    "productId": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "qty": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "price": {
+                        "type": "number",
+                        "minimum": 0
+                    }
+                }
+            }
+        },
+        "createdAt": {
+            "type": "string",
+            "format": "date-time"
+        },
+        "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+        }
+    }
+}

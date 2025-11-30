@@ -1,0 +1,204 @@
+org: camilaespinoza
+service: pedidos-api
+
+provider:
+  name: aws
+  runtime: python3.9
+  memorySize: 256
+  timeout: 30
+  iam:
+    role: arn:aws:iam::${file(../serverless.vars.yml):accountId}:role/${file(../serverless.vars.yml):labRole}
+  # Additional inline role statements to scope Lambda permissions (LabRole remains the execution role)
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:PutItem
+        - dynamodb:GetItem
+        - dynamodb:UpdateItem
+        - dynamodb:Query
+        - dynamodb:Scan
+      Resource:
+        - arn:aws:dynamodb:${self:provider.region}:${file(../serverless.vars.yml):accountId}:table/${self:provider.environment.PEDIDOS_TABLE}
+    - Effect: Allow
+      Action:
+        - sqs:SendMessage
+        - sqs:ReceiveMessage
+        - sqs:DeleteMessage
+        - sqs:GetQueueAttributes
+      Resource:
+        - arn:aws:sqs:${self:provider.region}:${file(../serverless.vars.yml):accountId}:${self:provider.environment.SQS_QUEUE}
+    - Effect: Allow
+      Action:
+        - states:StartExecution
+      Resource:
+        - arn:aws:states:${self:provider.region}:${file(../serverless.vars.yml):accountId}:stateMachine:*
+    - Effect: Allow
+      Action:
+        - logs:CreateLogGroup
+        - logs:CreateLogStream
+        - logs:PutLogEvents
+      Resource:
+        - arn:aws:logs:${self:provider.region}:${file(../serverless.vars.yml):accountId}:* 
+  environment:
+    STAGE: ${opt:stage, 'dev'}
+    PEDIDOS_TABLE: ${self:service}-${self:provider.environment.STAGE}-pedidos
+    MENU_TABLE: ${self:service}-${self:provider.environment.STAGE}-menu
+    LOCALES_TABLE: ${self:service}-${self:provider.environment.STAGE}-locales
+    SQS_QUEUE: ${self:service}-${self:provider.environment.STAGE}-pedidos-queue
+    # Read STEP_FUNCTION_ARN exported by the kfc-workflow stack (if deployed)
+    STEP_FUNCTION_ARN: ${cf:kfc-workflow-${opt:stage, 'dev'}.KfcOrderFlowArn, ''}
+
+custom:
+  sqsQueueName: ${self:provider.environment.SQS_QUEUE}
+  sqsDLQName: ${self:provider.environment.SQS_QUEUE}-dlq
+
+functions:
+  login:
+    handler: lambdas.auth.login.lambda_handler
+    events:
+      - http:
+          path: /auth/login
+          method: post
+          cors: true
+
+  register:
+    handler: lambdas.auth.register.lambda_handler
+    events:
+      - http:
+          path: /auth/register
+          method: post
+          cors: true
+
+  autorizador:
+    handler: lambdas.autorizador.lambda_handler
+
+  registro:
+    handler: lambdas.pedidos.registro.lambda_handler
+    events:
+      - http:
+          path: /order
+          method: post
+          cors: true
+          authorizer: autorizador
+
+  status:
+    handler: lambdas.pedidos.status.lambda_handler
+    events:
+      - http:
+          path: /status
+          method: get
+          cors: true
+          authorizer: autorizador
+
+  procesamiento:
+    handler: lambdas.procesamiento.procesamiento.lambda_handler
+    events:
+      - sqs:
+          arn:
+            'Fn::GetAtt': [ PedidosQueue, Arn ]
+
+  menu:
+    handler: lambdas.menu.menu.lambda_handler
+    events:
+      - http:
+          path: /menu
+          method: get
+          cors: true
+          authorizer: autorizador
+
+  locales:
+    handler: lambdas.inicializar_datos.lambda_handler
+    events:
+      - http:
+          path: /locales/init
+          method: post
+          cors: true
+          authorizer: autorizador
+
+resources:
+  Resources:
+    PedidosTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.PEDIDOS_TABLE}
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+          - AttributeName: storeId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+        GlobalSecondaryIndexes:
+          - IndexName: StoreIndex
+            KeySchema:
+              - AttributeName: storeId
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+
+    MenuTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.MENU_TABLE}
+        AttributeDefinitions:
+          - AttributeName: productId
+            AttributeType: S
+          - AttributeName: store
+            AttributeType: S
+        KeySchema:
+          - AttributeName: productId
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+        GlobalSecondaryIndexes:
+          - IndexName: StoreMenuIndex
+            KeySchema:
+              - AttributeName: store
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+
+    LocalesTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.LOCALES_TABLE}
+        AttributeDefinitions:
+          - AttributeName: storeId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: storeId
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+
+    PedidosQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: ${self:custom.sqsQueueName}
+        VisibilityTimeout: 300
+        RedrivePolicy:
+          deadLetterTargetArn: !GetAtt PedidosDLQ.Arn
+          maxReceiveCount: 3
+
+    PedidosDLQ:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: ${self:custom.sqsDLQName}
+        MessageRetentionPeriod: 1209600
+
+  Outputs:
+    ApiUrl:
+      Description: "URL del API Gateway"
+      Value: !Sub "https://${ApiGatewayRestApi}.execute-api.${AWS::Region}.amazonaws.com/${sls:stage}"
+      Export:
+        Name: "PedidosApiUrl-${opt:stage, 'dev'}"
+    PedidosQueueName:
+      Description: "SQS queue name for pedidos"
+      Value: !Ref PedidosQueue
+      Export:
+        Name: "PedidosQueueName-${opt:stage, 'dev'}"
+    PedidosQueueArn:
+      Description: "SQS queue ARN for pedidos"
+      Value: !GetAtt PedidosQueue.Arn
+      Export:
+        Name: "PedidosQueueArn-${opt:stage, 'dev'}"
