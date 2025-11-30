@@ -1,4 +1,4 @@
-org: gianaedo
+org: ${file(../serverless.vars.yml):org}
 service: kfc-workflow
 
 provider:

@@ -1,4 +1,5 @@
 # Centralized Serverless variables for multi-service deployments
-# Edit `accountId` and `labRole` to switch accounts or role names across all services.
+# Edit these values to switch accounts, roles, or organization across all services.
 accountId: 282163831899
 labRole: LabRole
+org: fabioedv

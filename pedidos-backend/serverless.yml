@@ -1,4 +1,4 @@
-org: camilaespinoza
+org: ${file(../serverless.vars.yml):org}
 service: pedidos-api
 
 provider:
