@@ -71,6 +71,7 @@ echo "POST $ApiUrl/order"
 echo "Body: $body"
 createResp=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST "$ApiUrl/order" \
     -H "Content-Type: application/json" \
+    -H "Authorization: Bearer demo-token" \
     -d "$body")
 
 httpStatus=$(echo "$createResp" | grep HTTP_STATUS | cut -d: -f2)
@@ -93,7 +94,8 @@ deadline=$(($(date +%s) + TimeoutSeconds))
 while [ $(date +%s) -lt $deadline ]; do
     sleep "$PollIntervalSeconds"
     
-    statusResp=$(curl -s "$ApiUrl/status?orderId=$orderId")
+    statusResp=$(curl -s "$ApiUrl/status?orderId=$orderId" \
+        -H "Authorization: Bearer demo-token")
     currentStatus=$(echo "$statusResp" | grep -o '"currentStatus":"[^"]*"' | sed 's/"currentStatus":"\(.*\)"/\1/')
     
     echo "Status: $currentStatus"
