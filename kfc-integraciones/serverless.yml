@@ -18,11 +18,6 @@ provider:
     - Effect: Allow
       Action:
         - events:PutEvents
-        OrdersNotificationsTopicArn:
-          Description: "SNS Topic ARN for order notifications"
-          Value: !Ref OrdersNotificationsTopic
-          Export:
-            Name: "OrdersNotificationsTopicArn-${opt:stage, 'dev'}"
       Resource:
         - arn:aws:events:${self:provider.region}:${file(../serverless.vars.yml):accountId}:event-bus/${self:provider.environment.EVENT_BUS}
     - Effect: Allow
@@ -100,6 +95,13 @@ resources:
       Type: AWS::SNS::Topic
       Properties:
         TopicName: orders-notifications
+
+  Outputs:
+    OrdersNotificationsTopicArn:
+      Description: "SNS Topic ARN for order notifications"
+      Value: !Ref OrdersNotificationsTopic
+      Export:
+        Name: "OrdersNotificationsTopicArn-${opt:stage, 'dev'}"
 
 functions:
 
