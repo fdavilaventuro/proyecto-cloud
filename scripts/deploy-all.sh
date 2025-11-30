@@ -42,16 +42,6 @@ aws events describe-event-bus --name orders-bus --region "$Region" 2>/dev/null |
     aws events create-event-bus --name orders-bus --region "$Region"
 }
 
-echo ""
-echo "⚠️  SES Email Verification Required"
-echo "======================================"
-echo "Before emails work, verify fabio.davila@utec.edu.pe via AWS Console:"
-echo "1. Go to: https://console.aws.amazon.com/ses/home?region=$Region#verified-senders-email:"
-echo "2. Click 'Verify a New Email Address' and enter: fabio.davila@utec.edu.pe"
-echo "3. Check inbox and click verification link"
-echo "4. Re-run this deployment script"
-echo ""
-
 echo "Deploying pedidos-backend (API + SQS). This will export the Pedidos table name for other stacks"
 cd pedidos-backend
 npm install
@@ -87,7 +77,11 @@ echo ""
 echo "Architecture:"
 echo "  - Payment: Automated via Step Functions (kfc-workflow)"
 echo "  - Kitchen/Packing/Delivery: Employee-driven via API endpoints"
-echo "  - Notifications: Event-driven via EventBridge (ready for email/SMS)"
+echo "  - Notifications: Event-driven via EventBridge (logs to CloudWatch)"
+echo ""
+echo "⚠️  Note: AWS Academy LabRole doesn't have SES permissions"
+echo "   Email notifications are simulated (logged to CloudWatch)"
+echo "   In production AWS account, uncomment SES code in notifications.py"
 echo ""
 echo "To test the hybrid workflow, run:"
 echo "  bash scripts/smoke-test-hybrid.sh $Stage $Region"

@@ -71,17 +71,36 @@ def get_order_details(order_id):
 
 
 def send_email_notification(recipient, subject, body):
-    """Send email via Amazon SES."""
+    """
+    Send email via Amazon SES.
+    
+    Note: AWS Academy LabRole doesn't have SES permissions.
+    For demo purposes, this logs the email content instead of sending.
+    In production with proper AWS account, uncomment the ses.send_email() code.
+    """
     try:
-        response = ses.send_email(
-            Source=SENDER_EMAIL,
-            Destination={'ToAddresses': [recipient]},
-            Message={
-                'Subject': {'Data': subject, 'Charset': 'UTF-8'},
-                'Body': {'Text': {'Data': body, 'Charset': 'UTF-8'}}
-            }
-        )
-        print(f"✅ Email sent to {recipient}, MessageId: {response['MessageId']}")
+        # AWS Academy restriction: SES not available
+        # Simulate email sending by logging
+        print("=" * 60)
+        print("📧 EMAIL NOTIFICATION (SIMULATED - SES NOT AVAILABLE)")
+        print("=" * 60)
+        print(f"To: {recipient}")
+        print(f"Subject: {subject}")
+        print("-" * 60)
+        print(body)
+        print("=" * 60)
+        
+        # TODO: Uncomment when deploying to production AWS account with SES access
+        # response = ses.send_email(
+        #     Source=SENDER_EMAIL,
+        #     Destination={'ToAddresses': [recipient]},
+        #     Message={
+        #         'Subject': {'Data': subject, 'Charset': 'UTF-8'},
+        #         'Body': {'Text': {'Data': body, 'Charset': 'UTF-8'}}
+        #     }
+        # )
+        # print(f"✅ Email sent to {recipient}, MessageId: {response['MessageId']}")
+        
         return True
     except ClientError as e:
         error_code = e.response['Error']['Code']

@@ -22,11 +22,6 @@ provider:
         - arn:aws:events:${self:provider.region}:${file(../serverless.vars.yml):accountId}:event-bus/${self:provider.environment.EVENT_BUS}
     - Effect: Allow
       Action:
-        - ses:SendEmail
-        - ses:SendRawEmail
-      Resource: "*"
-    - Effect: Allow
-      Action:
         - logs:CreateLogGroup
         - logs:CreateLogStream
         - logs:PutLogEvents
