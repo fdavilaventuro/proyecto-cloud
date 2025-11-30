@@ -1,3 +1,74 @@
+# Guía de Configuración de Git (Equipo)
+
+Esta guía ayuda a clonar, configurar y colaborar en el proyecto en equipo.
+
+## Prerrequisitos
+- Git instalado
+- Node.js 18+ y npm (o pnpm)
+- AWS CLI configurado con credenciales de AWS Academy (LabRole)
+- Python 3.9+ (para lambdas de backend)
+
+## Clonar el repositorio
+```bash
+git clone https://github.com/fdavilaventuro/proyecto-cloud.git
+cd proyecto-cloud
+```
+
+## Estructura de carpetas
+- `pedidos-backend/`: API de pedidos (Serverless + Python + DynamoDB)
+- `kfc-workflow/`: Step Functions del flujo de pago
+- `kfc-integraciones/`: EventBridge + SNS para notificaciones
+- `kfcfront/`: Frontend (Next.js)
+- `scripts/`: Scripts para despliegue y pruebas
+
+## Configuración inicial
+1. Revisar `serverless.vars.yml` (cuenta y rol):
+   ```yaml
+   org: <org>
+   accountId: 282163831899
+   labRole: LabRole
+   ```
+2. Instalar dependencias donde aplique:
+   ```bash
+   cd pedidos-backend && npm install && cd ..
+   cd kfc-workflow && npm install && cd ..
+   cd kfc-integraciones && npm install && cd ..
+   ```
+
+## Despliegue
+```bash
+bash scripts/deploy-all.sh dev us-east-1
+```
+- Despliega backend, workflow y integraciones.
+- Crea el tópico SNS `orders-notifications`.
+
+## Prueba del flujo
+```bash
+bash scripts/smoke-test-hybrid.sh dev us-east-1
+```
+- Crea un pedido, procesa pago, simula estados de empleado y manager.
+- Al final, el estado debe ser `DELIVERING`.
+
+## Notificaciones por correo (dev)
+- Suscribir correo al tópico SNS una sola vez:
+```bash
+aws sns subscribe \
+  --topic-arn arn:aws:sns:us-east-1:282163831899:orders-notifications \
+  --protocol email \
+  --notification-endpoint fabio.davila@utec.edu.pe \
+  --region us-east-1
+```
+- Confirmar la suscripción desde el email.
+
+## Buenas prácticas de Git
+- Crear ramas por feature/bugfix: `feat/notificaciones-sns`, `fix/decimal-json`.
+- Commits descriptivos: `feat(notifications): enviar correo via SNS en ORDER.READY`.
+- Pull Requests y revisión por pares.
+
+## Problemas comunes
+- `AccessDenied` en SES: usar SNS en dev (AWS Academy no permite SES).
+- 502 en API: revisar logs en CloudWatch del lambda correspondiente.
+- JSON con `Decimal`: solucionado vía `common/response.py`.
 # How to Push to GitHub and Clone on EC2
 
 ## Step 1: Create a GitHub Repository

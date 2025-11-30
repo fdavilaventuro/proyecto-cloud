@@ -24,37 +24,37 @@ TABLE_NAME = os.environ.get('TABLE_NAME', 'Orders')
 # Email templates for different event types
 EMAIL_TEMPLATES = {
     "ORDER.PAID": {
-        "subject": "✅ Payment Confirmed - KFC Order #{orderId}",
-        "body": """Hello {client},
+        "subject": "✅ Pago Confirmado - Pedido KFC #{orderId}",
+        "body": """Hola {client},
 
-Your payment has been confirmed!
+¡Tu pago ha sido confirmado!
 
-Order Details:
-- Order ID: {orderId}
+Detalles del pedido:
+- ID de Pedido: {orderId}
 - Total: ${total}
-- Address: {address}
+- Dirección: {address}
 
-Your order is now being prepared by our kitchen team.
+Tu pedido ya está siendo preparado por nuestro equipo de cocina.
 
-We'll notify you when it's ready for pickup or delivery.
+Te avisaremos cuando esté listo para recojo o envío.
 
-Thank you for choosing KFC!
+¡Gracias por elegir KFC!
 """
     },
     "ORDER.READY": {
-        "subject": "🍗 Your KFC Order is Ready! - Order #{orderId}",
-        "body": """Hello {client},
+        "subject": "🍗 ¡Tu pedido KFC está listo! - Pedido #{orderId}",
+        "body": """Hola {client},
 
-Great news! Your KFC order is ready!
+¡Buenas noticias! ¡Tu pedido de KFC está listo!
 
-Order Details:
-- Order ID: {orderId}
-- Status: Out for delivery
-- Driver: {driver}
+Detalles del pedido:
+- ID de Pedido: {orderId}
+- Estado: En reparto
+- Repartidor: {driver}
 
-Your delicious food is on its way!
+¡Tu comida deliciosa va en camino!
 
-Thank you for choosing KFC!
+¡Gracias por elegir KFC!
 """
     }
 }
