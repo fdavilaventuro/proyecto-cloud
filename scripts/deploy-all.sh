@@ -65,13 +65,19 @@ else
     echo "Found Step Function ARN: $sfArn"
 fi
 
-echo "Skipping kfc-integraciones (marked for removal - unused stack)"
+echo "Deploying kfc-integraciones (EventBridge notifications)"
+cd kfc-integraciones
+npm install
+sls deploy -s "$Stage" --region "$Region"
+cd ..
+
 echo ""
 echo "✅ Deployment complete!"
 echo ""
 echo "Architecture:"
 echo "  - Payment: Automated via Step Functions (kfc-workflow)"
 echo "  - Kitchen/Packing/Delivery: Employee-driven via API endpoints"
+echo "  - Notifications: Event-driven via EventBridge (ready for email/SMS)"
 echo ""
 echo "To test the hybrid workflow, run:"
 echo "  bash scripts/smoke-test-hybrid.sh $Stage $Region"

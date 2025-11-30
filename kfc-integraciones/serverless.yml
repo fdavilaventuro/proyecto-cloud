@@ -35,16 +35,15 @@ provider:
       Resource:
         - arn:aws:logs:${self:provider.region}:${file(../serverless.vars.yml):accountId}:*
   environment:
-    # Read TABLE_NAME and EVENT_BUS exported by kfc-workflow stack when available
-    TABLE_NAME: ${cf:kfc-workflow-${opt:stage, 'dev'}.OrdersTableName, 'Orders'}
+    # Read TABLE_NAME from pedidos-backend and EVENT_BUS from kfc-workflow
+    TABLE_NAME: ${cf:pedidos-api-${opt:stage, 'dev'}.PedidosTableName}
     EVENT_BUS: ${cf:kfc-workflow-${opt:stage, 'dev'}.OrdersEventBusName, 'orders-bus'}
 
 resources:
   Resources:
 
-    # Note: Orders table and EventBus are owned by `kfc-workflow`.
-    # This stack reads their names via CloudFormation exports to avoid resource duplication.
-    # S3 bucket is also managed separately to avoid conflicts.
+    # Note: Pedidos table is owned by pedidos-backend, EventBus by kfc-workflow.
+    # This stack listens to events and can trigger notifications (email, SMS, push) in the future.
 
     # -------------------------------
     # EventBridge Rules
@@ -95,40 +94,9 @@ resources:
 functions:
 
   # -------------------------------------
-  # GET /status/{id}
-  # -------------------------------------
-  get_order_status:
-    handler: get_order_status.lambda_handler
-    events:
-      - http:
-          path: status/{id}
-          method: get
-          cors: true
-
-  # -------------------------------------
-  # POST /pay — SIMULADO
-  # -------------------------------------
-  stripe_payment:
-    handler: stripe_payment.lambda_handler
-    events:
-      - http:
-          path: pay
-          method: post
-          cors: true
-
-  # -------------------------------------
-  # POST /event/ready
-  # -------------------------------------
-  send_order_ready:
-    handler: send_event_ready.lambda_handler
-    events:
-      - http:
-          path: event/ready
-          method: post
-          cors: true
-
-  # -------------------------------------
-  # Lambda de Notificaciones
+  # Event-driven notifications handler
+  # Listens to EventBridge events and can send emails/SMS/push notifications
   # -------------------------------------
   notification_handler:
     handler: notifications.lambda_handler
+    description: Handles ORDER.PAID and ORDER.READY events for customer notifications
