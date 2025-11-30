@@ -35,6 +35,11 @@ provider:
         - arn:aws:states:${self:provider.region}:${file(../serverless.vars.yml):accountId}:stateMachine:*
     - Effect: Allow
       Action:
+        - events:PutEvents
+      Resource:
+        - arn:aws:events:${self:provider.region}:${file(../serverless.vars.yml):accountId}:event-bus/orders-bus
+    - Effect: Allow
+      Action:
         - logs:CreateLogGroup
         - logs:CreateLogStream
         - logs:PutLogEvents
@@ -48,6 +53,7 @@ provider:
     SQS_QUEUE: ${self:service}-${self:provider.environment.STAGE}-pedidos-queue
     # Read STEP_FUNCTION_ARN exported by the kfc-workflow stack (if deployed)
     STEP_FUNCTION_ARN: ${cf:kfc-workflow-${opt:stage, 'dev'}.KfcOrderFlowArn, ''}
+    EVENT_BUS: orders-bus
 
 custom:
   sqsQueueName: ${self:provider.environment.SQS_QUEUE}

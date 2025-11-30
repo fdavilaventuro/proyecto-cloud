@@ -1,12 +1,18 @@
 """
 Employee-facing endpoints for manual order status updates.
 These are called by the employee frontend to transition orders through kitchen, packing, and delivery stages.
+Sends EventBridge events for email notifications.
 """
 import json
 import os
+import boto3
 from datetime import datetime
 from common.db import pedidos_table
 from common.response import success_response, error_response
+
+# EventBridge client for sending notification events
+events = boto3.client('events')
+EVENT_BUS = os.environ.get('EVENT_BUS', 'orders-bus')
 
 
 def mark_kitchen_ready(event, context):
@@ -86,6 +92,7 @@ def assign_delivery(event, context):
     """
     PUT /employee/order/{id}/deliver
     Manager assigns driver and marks order as out for delivery.
+    Sends ORDER.READY event to trigger delivery notification email.
     Body: {"driver": "Driver Name"}
     """
     try:
@@ -109,6 +116,21 @@ def assign_delivery(event, context):
             ConditionExpression='attribute_exists(id) AND #s = :current_status',
             ReturnValues='ALL_NEW'
         )
+        
+        # Send ORDER.READY event to EventBridge for email notification
+        try:
+            events.put_events(
+                Entries=[{
+                    'Source': 'kfc.orders',
+                    'DetailType': 'ORDER.READY',
+                    'EventBusName': EVENT_BUS,
+                    'Detail': json.dumps({'orderId': order_id, 'driver': driver})
+                }]
+            )
+            print(f"ORDER.READY event sent to EventBridge for order {order_id}")
+        except Exception as e:
+            print(f"Warning: Failed to send ORDER.READY event: {str(e)}")
+            # Don't fail the request if event sending fails
         
         return success_response({
             'message': f'Orden asignada a {driver} para entrega',
