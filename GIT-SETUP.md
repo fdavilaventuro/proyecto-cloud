@@ -69,69 +69,53 @@ aws sns subscribe \
 - `AccessDenied` en SES: usar SNS en dev (AWS Academy no permite SES).
 - 502 en API: revisar logs en CloudWatch del lambda correspondiente.
 - JSON con `Decimal`: solucionado vía `common/response.py`.
-# How to Push to GitHub and Clone on EC2
+## Cómo trabajar con GitHub y EC2
 
-## Step 1: Create a GitHub Repository
+### 1) Crear un repositorio en GitHub
+1. Entra a [github.com](https://github.com).
+2. Crea un nuevo repositorio (ej. `proyecto-cloud`).
+3. No inicialices con README/.gitignore/licencia.
+4. Copia la URL HTTPS o SSH.
 
-1. Go to [github.com](https://github.com) and log in to your account.
-2. Click **New** to create a new repository.
-3. Name it (e.g., `kfc-integraciones`).
-4. Do **NOT** initialize with README, .gitignore, or license (we have those).
-5. Click **Create repository**.
-6. Copy the HTTPS or SSH URL.
-
-## Step 2: Push from Local Machine
-
+### 2) Hacer push desde tu máquina
 ```powershell
 cd 'c:\Users\fdavi\Documents\proyecto cloud'
-git remote add origin <YOUR_GITHUB_URL>
+git remote add origin <URL_GITHUB>
 git branch -M main
 git push -u origin main
 ```
 
-Replace `<YOUR_GITHUB_URL>` with the URL from your GitHub repo (e.g., `https://github.com/fdavilaventuro/kfc-integraciones.git`).
-
-## Step 3: Clone on EC2 Instance
-
-1. SSH into your EC2 instance (Windows PowerShell, use `ssh -i <your-key.pem> ec2-user@<instance-ip>`).
-2. Install git (if not already installed):
+### 3) Clonar en una instancia EC2
+1. Conéctate por SSH (`ssh -i <tu-key.pem> ec2-user@<ip>`).
+2. Instala git si hace falta:
    ```bash
    sudo yum install git -y
    ```
-3. Clone the repository:
+3. Clona el repo:
    ```bash
-   git clone <YOUR_GITHUB_URL>
-   cd kfc-integraciones  # or whatever you named your repo
+   git clone <URL_GITHUB>
+   cd proyecto-cloud
    ```
 
-## Step 4: Deploy from EC2
-
-On your EC2 instance, use the **bash** versions of the scripts (not PowerShell):
-
+### 4) Desplegar desde EC2
+Usa los scripts en bash:
 ```bash
-# Make scripts executable (if not already)
-chmod +x scripts/deploy-all.sh scripts/smoke-test.sh
-
-# Deploy all services
+chmod +x scripts/deploy-all.sh scripts/smoke-test-hybrid.sh
 bash scripts/deploy-all.sh dev us-east-1
-
-# Run the smoke test
-bash scripts/smoke-test.sh dev us-east-1
+bash scripts/smoke-test-hybrid.sh dev us-east-1
 ```
 
-If you're using **Windows EC2 with PowerShell**, use the `.ps1` scripts instead:
+Si estás en Windows EC2 y prefieres PowerShell:
 ```powershell
-.\scripts\deploy-all.ps1 -Stage dev -Region us-east-1
-.\scripts\smoke-test.ps1 -Stage dev -Region us-east-1
+.\scripts\build-and-deploy.ps1 -Stage dev -Region us-east-1
 ```
 
-**Before deploy**, ensure:
-- AWS CLI is configured with credentials that can assume `LabRole`.
-- Node.js and Python 3.9+ are installed on EC2.
-- Serverless framework is installed: `npm install -g serverless`.
+### Antes del deploy, asegúrate:
+- AWS CLI configurado para usar `LabRole`.
+- Node.js y Python 3.9+ instalados.
+- Serverless: `npm install -g serverless`.
 
-## Notes
-
-- Edit `serverless.vars.yml` on EC2 if your account ID or role name is different.
-- Store the `.env` file locally (not in git) with secrets like `NEXT_PUBLIC_API_URL`.
-- Use `git pull` to update from main branch after any local changes are pushed.
+### Notas
+- Edita `serverless.vars.yml` si tu `accountId` o `labRole` difieren.
+- No subas `.env` al repositorio (mantener secretos fuera de git).
+- Usa `git pull` para bajar cambios del branch `main`.
