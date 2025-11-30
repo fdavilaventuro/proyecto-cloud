@@ -81,7 +81,7 @@ echo "HTTP Status: $httpStatus"
 echo "Response Body: $bodyResp"
 
 # Extract orderId using grep and sed
-orderId=$(echo "$bodyResp" | grep -o '"orderId":"[^"]*"' | sed 's/"orderId":"\(.*\)"/\1/')
+orderId=$(echo "$bodyResp" | sed -n 's/.*"orderId"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
 
 if [ -z "$orderId" ]; then
     echo "Error: No orderId returned. Full response was: $bodyResp" >&2
@@ -96,7 +96,7 @@ while [ $(date +%s) -lt $deadline ]; do
     
     statusResp=$(curl -s "$ApiUrl/status?orderId=$orderId" \
         -H "Authorization: Bearer demo-token")
-    currentStatus=$(echo "$statusResp" | grep -o '"currentStatus":"[^"]*"' | sed 's/"currentStatus":"\(.*\)"/\1/')
+        currentStatus=$(echo "$statusResp" | sed -n 's/.*"currentStatus"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
     
     echo "Status: $currentStatus"
     
