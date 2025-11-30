@@ -43,11 +43,13 @@ aws events describe-event-bus --name orders-bus --region "$Region" 2>/dev/null |
 }
 
 echo ""
-echo "Verifying SES email identity for notifications..."
-SENDER_EMAIL="fabio.davila@utec.edu.pe"
-aws ses verify-email-identity --email-address "$SENDER_EMAIL" --region "$Region" 2>/dev/null || true
-echo "⚠️  Check your inbox ($SENDER_EMAIL) for SES verification email if this is first deployment"
-echo "   You must click the verification link before emails can be sent"
+echo "⚠️  SES Email Verification Required"
+echo "======================================"
+echo "Before emails work, verify fabio.davila@utec.edu.pe via AWS Console:"
+echo "1. Go to: https://console.aws.amazon.com/ses/home?region=$Region#verified-senders-email:"
+echo "2. Click 'Verify a New Email Address' and enter: fabio.davila@utec.edu.pe"
+echo "3. Check inbox and click verification link"
+echo "4. Re-run this deployment script"
 echo ""
 
 echo "Deploying pedidos-backend (API + SQS). This will export the Pedidos table name for other stacks"
