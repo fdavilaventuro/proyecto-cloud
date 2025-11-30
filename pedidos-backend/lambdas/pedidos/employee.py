@@ -6,6 +6,7 @@ Sends EventBridge events for email notifications.
 import json
 import os
 import boto3
+from botocore.exceptions import ClientError
 from datetime import datetime
 from common.db import pedidos_table
 from common.response import success_response, error_response
@@ -45,8 +46,12 @@ def mark_kitchen_ready(event, context):
             'order': response['Attributes']
         })
         
-    except table.meta.client.exceptions.ConditionalCheckFailedException:
-        return error_response('Orden no encontrada o no está en estado PAID', 400)
+    except ClientError as e:
+        code = e.response.get('Error', {}).get('Code')
+        if code == 'ConditionalCheckFailedException':
+            return error_response('Orden no encontrada o no está en estado PAID', 400)
+        print(f"AWS ClientError in kitchen-ready: {repr(e)}")
+        return error_response(f'Error AWS en kitchen-ready: {code}', 500)
     except Exception as e:
         print(f"Error marking kitchen ready: {repr(e)}")
         return error_response(f'Error interno en kitchen-ready: {type(e).__name__}: {str(e)}', 500)
@@ -82,8 +87,12 @@ def mark_packed(event, context):
             'order': response['Attributes']
         })
         
-    except table.meta.client.exceptions.ConditionalCheckFailedException:
-        return error_response('Orden no encontrada o no está en estado KITCHEN_READY', 400)
+    except ClientError as e:
+        code = e.response.get('Error', {}).get('Code')
+        if code == 'ConditionalCheckFailedException':
+            return error_response('Orden no encontrada o no está en estado KITCHEN_READY', 400)
+        print(f"AWS ClientError in packed: {repr(e)}")
+        return error_response(f'Error AWS en packed: {code}', 500)
     except Exception as e:
         print(f"Error marking packed: {repr(e)}")
         return error_response(f'Error interno en packed: {type(e).__name__}: {str(e)}', 500)
@@ -144,8 +153,12 @@ def assign_delivery(event, context):
             'order': response['Attributes']
         })
         
-    except table.meta.client.exceptions.ConditionalCheckFailedException:
-        return error_response('Orden no encontrada o no está en estado PACKED', 400)
+    except ClientError as e:
+        code = e.response.get('Error', {}).get('Code')
+        if code == 'ConditionalCheckFailedException':
+            return error_response('Orden no encontrada o no está en estado PACKED', 400)
+        print(f"AWS ClientError in deliver: {repr(e)}")
+        return error_response(f'Error AWS en deliver: {code}', 500)
     except Exception as e:
         print(f"Error assigning delivery: {repr(e)}")
         return error_response(f'Error interno en deliver: {type(e).__name__}: {str(e)}', 500)
