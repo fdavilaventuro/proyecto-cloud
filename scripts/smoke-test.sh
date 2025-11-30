@@ -98,7 +98,12 @@ while [ $(date +%s) -lt $deadline ]; do
         -H "Authorization: Bearer demo-token")
         currentStatus=$(echo "$statusResp" | sed -n 's/.*"currentStatus"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
     
-    echo "Status: $currentStatus"
+    if [ -z "$currentStatus" ]; then
+        echo "Status: "
+        echo "Raw status response: $statusResp"
+    else
+        echo "Status: $currentStatus"
+    fi
     
     if echo "$currentStatus" | grep -qE "DELIVERING|PAYMENT_REJECTED|PACKED"; then
         echo "Final state reached: $currentStatus"
