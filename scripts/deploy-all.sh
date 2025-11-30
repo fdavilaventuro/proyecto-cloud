@@ -37,6 +37,7 @@ validate_serverless_vars
 
 echo "Deploying kfc-workflow (creates Orders table, Step Function, EventBus)"
 cd kfc-workflow
+npm install
 sls deploy -s "$Stage" --region "$Region"
 cd ..
 
@@ -53,11 +54,13 @@ fi
 
 echo "Deploying pedidos-backend (API + SQS). Will reference kfc-workflow outputs if available"
 cd pedidos-backend
+npm install
 sls deploy -s "$Stage" --region "$Region"
 cd ..
 
 echo "Deploying kfc-integraciones"
 cd kfc-integraciones
+npm install
 sls deploy -s "$Stage" --region "$Region"
 cd ..
 

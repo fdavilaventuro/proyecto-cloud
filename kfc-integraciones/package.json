@@ -1,0 +1,15 @@
+{
+    "name": "kfc-integraciones",
+    "version": "1.0.0",
+    "description": "KFC integrations and notifications",
+    "main": "index.js",
+    "scripts": {
+        "deploy": "serverless deploy",
+        "deploy:dev": "serverless deploy --stage dev",
+        "remove": "serverless remove"
+    },
+    "dependencies": {},
+    "devDependencies": {
+        "serverless": "^4.0.0"
+    }
+}

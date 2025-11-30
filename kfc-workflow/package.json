@@ -1,0 +1,16 @@
+{
+    "name": "kfc-workflow",
+    "version": "1.0.0",
+    "description": "KFC workflow lambdas and Step Functions",
+    "main": "index.js",
+    "scripts": {
+        "deploy": "serverless deploy",
+        "deploy:dev": "serverless deploy --stage dev",
+        "remove": "serverless remove"
+    },
+    "dependencies": {},
+    "devDependencies": {
+        "serverless": "^4.0.0",
+        "serverless-step-functions": "^3.13.0"
+    }
+}

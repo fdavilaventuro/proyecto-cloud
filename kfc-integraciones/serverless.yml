@@ -44,18 +44,7 @@ resources:
 
     # Note: Orders table and EventBus are owned by `kfc-workflow`.
     # This stack reads their names via CloudFormation exports to avoid resource duplication.
-
-    # -------------------------------
-    # S3 para imágenes
-    # -------------------------------
-    AssetsBucket:
-      Type: AWS::S3::Bucket
-      Properties:
-        BucketName: kfc-assets
-        WebsiteConfiguration:
-          IndexDocument: index.html
-          ErrorDocument: error.html
-      DeletionPolicy: Retain
+    # S3 bucket is also managed separately to avoid conflicts.
 
     # -------------------------------
     # EventBridge Rules
