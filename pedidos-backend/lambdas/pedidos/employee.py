@@ -21,6 +21,8 @@ def mark_kitchen_ready(event, context):
     Employee marks order as ready from kitchen.
     """
     try:
+        if 'pathParameters' not in event or 'id' not in event['pathParameters']:
+            return error_response('Parámetro de ruta faltante: {id}', 400)
         order_id = event['pathParameters']['id']
         table = pedidos_table()
         
@@ -46,8 +48,8 @@ def mark_kitchen_ready(event, context):
     except table.meta.client.exceptions.ConditionalCheckFailedException:
         return error_response('Orden no encontrada o no está en estado PAID', 400)
     except Exception as e:
-        print(f"Error marking kitchen ready: {str(e)}")
-        return error_response(f'Error interno: {str(e)}', 500)
+        print(f"Error marking kitchen ready: {repr(e)}")
+        return error_response(f'Error interno en kitchen-ready: {type(e).__name__}: {str(e)}', 500)
 
 
 def mark_packed(event, context):
@@ -56,6 +58,8 @@ def mark_packed(event, context):
     Employee marks order as packed and ready for pickup.
     """
     try:
+        if 'pathParameters' not in event or 'id' not in event['pathParameters']:
+            return error_response('Parámetro de ruta faltante: {id}', 400)
         order_id = event['pathParameters']['id']
         table = pedidos_table()
         
@@ -81,8 +85,8 @@ def mark_packed(event, context):
     except table.meta.client.exceptions.ConditionalCheckFailedException:
         return error_response('Orden no encontrada o no está en estado KITCHEN_READY', 400)
     except Exception as e:
-        print(f"Error marking packed: {str(e)}")
-        return error_response(f'Error interno: {str(e)}', 500)
+        print(f"Error marking packed: {repr(e)}")
+        return error_response(f'Error interno en packed: {type(e).__name__}: {str(e)}', 500)
 
 
 def assign_delivery(event, context):
@@ -93,8 +97,14 @@ def assign_delivery(event, context):
     Body: {"driver": "Driver Name"}
     """
     try:
+        if 'pathParameters' not in event or 'id' not in event['pathParameters']:
+            return error_response('Parámetro de ruta faltante: {id}', 400)
         order_id = event['pathParameters']['id']
-        body = json.loads(event.get('body', '{}'))
+        body_raw = event.get('body', '{}')
+        try:
+            body = json.loads(body_raw or '{}')
+        except Exception:
+            return error_response('Body inválido: debe ser JSON', 400)
         driver = body.get('driver', 'Driver Asignado')
         
         table = pedidos_table()
@@ -137,5 +147,5 @@ def assign_delivery(event, context):
     except table.meta.client.exceptions.ConditionalCheckFailedException:
         return error_response('Orden no encontrada o no está en estado PACKED', 400)
     except Exception as e:
-        print(f"Error assigning delivery: {str(e)}")
-        return error_response(f'Error interno: {str(e)}', 500)
+        print(f"Error assigning delivery: {repr(e)}")
+        return error_response(f'Error interno en deliver: {type(e).__name__}: {str(e)}', 500)
