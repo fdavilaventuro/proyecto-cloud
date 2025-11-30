@@ -139,10 +139,7 @@ resources:
   Outputs:
     KfcOrderFlowArn:
       Description: "ARN of the Step Functions state machine for KfcOrderFlow"
-      Value:
-        Fn::GetAtt:
-          - KfcOrderFlowStepFunctionsStateMachine
-          - Arn
+      Value: !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:KfcOrderWorkflow"
       Export:
         Name: "KfcOrderFlowArn-${opt:stage, 'dev'}"
     OrdersTableName:
