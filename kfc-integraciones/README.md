@@ -1,107 +1,46 @@
-# KFC Integraciones
+# KFC Integraciones (Notificaciones por Eventos)
 
-Este repositorio contiene la lógica de **integraciones** del sistema de pedidos de KFC, incluyendo **DynamoDB**, **EventBridge**, **S3** y simulación de pagos con **Stripe**. Este módulo se integra con el frontend y el workflow de Step Functions.
+Este módulo implementa las **notificaciones** del sistema de pedidos usando **EventBridge** y **SNS** (correo en entorno académico). Todo el contenido está en español.
 
 ---
 
-## Contenido del Repo
-
-- `serverless.yml` → Configuración de infraestructura y funciones Lambda.
-- Lambdas:
-  - `get_order_status.py` → Consulta el estado de una orden.
-  - `stripe_payment.py` → Simula un pago y envía eventos a EventBridge.
-  - `send_event_ready.py` → Envía evento `ORDER.READY`.
-  - `notifications.py` → Lambda que procesa eventos de EventBridge (`notification_handler`).
-- `README.md` → Documentación y guía de uso.
+## ¿Qué contiene?
+- `serverless.yml`: infraestructura (Reglas de EventBridge, permisos y tópico SNS).
+- `notifications.py`: Lambda que recibe `ORDER.PAID` y `ORDER.READY` y publica correos vía SNS.
+- Documentación: ver `README-INTEGRATION.md` (integración) y `GIT-SETUP.md` (setup del equipo).
 
 ---
 
 ## Recursos en AWS
-
-| Recurso | Descripción |
-|---------|------------|
-| DynamoDB Table | `Orders` → guarda las órdenes y su historial de estados. |
-| EventBridge Bus | `orders-bus` → recibe eventos `ORDER.READY` y `ORDER.PAID`. |
-| S3 Bucket | `kfc-assets` → almacena imágenes o assets del frontend. |
-| Lambda Functions | Gestionan eventos, pagos simulados y consultas de estado. |
+- EventBridge Bus: `orders-bus` (eventos de pago y entrega).
+- SNS Topic: `orders-notifications` (correos a suscriptores confirmados).
+- CloudWatch Logs: `/aws/lambda/kfc-integraciones-dev-notification_handler`.
 
 ---
 
-## Variables de Entorno
-
-Asegúrate de definir estas variables en cada Lambda o en Serverless:
-
-```text
-TABLE_NAME=Orders
-EVENT_BUS=orders-bus
-REGION=us-east-1
-````
+## Variables de entorno (Lambda `notification_handler`)
+- `SNS_TOPIC_ARN`: inyectada por CloudFormation (`Ref` al tópico SNS).
+- `TABLE_NAME`: nombre de la tabla de pedidos (exportada por `pedidos-backend`).
 
 ---
 
-## Endpoints API
-
-| Método | Ruta           | Descripción                                                             |
-| ------ | -------------- | ----------------------------------------------------------------------- |
-| GET    | `/status/{id}` | Consulta el estado de la orden.                                         |
-| POST   | `/pay`         | Simula un pago y genera evento `ORDER.PAID`.                            |
-| POST   | `/event/ready` | Envía evento `ORDER.READY` para simular que la cocina terminó la orden. |
-
-> **Nota:** `/event/paid` ya no es necesario, la transición a `PAID` se hace desde `/pay`.
+## Flujo de notificaciones
+- `ORDER.PAID`: lo envía el workflow de pago (Step Functions).
+- `ORDER.READY`: lo envía el endpoint `deliver` de `pedidos-backend` al asignar repartidor.
+- `notifications.py`: arma el correo (en español) y publica en SNS.
 
 ---
 
-## Ejemplo de Orden para DynamoDB
-
-```bash
-aws dynamodb put-item \
-    --table-name Orders \
-    --item '{
-        "id": {"S": "ORDER-001"},
-        "status": {"S": "PENDING"},
-        "statusHistory": {"L":[]}
-    }' \
-    --region us-east-1
-```
-
-Puedes crear varias órdenes (`ORDER-002`, `ORDER-003`) para pruebas.
+## Uso
+- Despliegue completo: `bash scripts/deploy-all.sh dev us-east-1`
+- Prueba de humo: `bash scripts/smoke-test-hybrid.sh dev us-east-1`
+- Suscribir email: ver pasos en `README-INTEGRATION.md`.
 
 ---
 
-## Flujo de Pruebas Recomendado
-
-1. Insertar una orden en DynamoDB (`PENDING`).
-2. Consultar estado inicial:
-
-   ```http
-   GET /status/ORDER-001
-   ```
-3. Marcar orden como lista (`READY`):
-
-   ```http
-   POST /event/ready
-   {
-       "orderId": "ORDER-001"
-   }
-   ```
-4. Confirmar cambio:
-
-   ```http
-   GET /status/ORDER-001
-   ```
-5. Simular pago:
-
-   ```http
-   POST /pay
-   {
-       "orderId": "ORDER-001"
-   }
-   ```
-6. Confirmar estado `PAID`:
-
-   ```http
-   GET /status/ORDER-001
-   ```
+## Notas
+- Este repo ya no incluye lambdas de “pago” ni “event ready”; esas funciones viven en `kfc-workflow` y `pedidos-backend` respectivamente.
+- En producción (fuera de AWS Academy) se puede cambiar a SES.
 
 ---
 
