@@ -2,7 +2,9 @@ import json
 
 def lambda_handler(event, context):
     print("Evento Autorizador:", json.dumps(event))
-    token = event.get('headers', {}).get('Authorization', '')
+    
+    # API Gateway passes the Authorization header value in authorizationToken
+    token = event.get('authorizationToken', '')
     
     if token and ('Bearer demo-token' in token or 'demo-token' in token):
         return {
