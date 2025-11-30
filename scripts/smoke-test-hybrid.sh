@@ -170,6 +170,14 @@ if [ "$finalStatus" = "DELIVERING" ]; then
     echo ""
     echo "✅ Smoke test passed! Order progressed through full hybrid workflow:"
     echo "   PENDING → PAID (automated) → KITCHEN_READY (employee) → PACKED (employee) → DELIVERING (manager)"
+    echo ""
+    echo "📧 Email notifications:"
+    echo "   - Payment confirmation sent to fabio.davila@utec.edu.pe (ORDER.PAID event)"
+    echo "   - Delivery notification sent to fabio.davila@utec.edu.pe (ORDER.READY event)"
+    echo "   ⚠️  Check inbox and spam folder for notification emails"
+    echo ""
+    echo "💡 To check CloudWatch logs for notification delivery:"
+    echo "   aws logs tail /aws/lambda/kfc-integraciones-$STAGE-notification_handler --follow --region $REGION"
     exit 0
 else
     echo ""

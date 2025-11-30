@@ -42,6 +42,14 @@ aws events describe-event-bus --name orders-bus --region "$Region" 2>/dev/null |
     aws events create-event-bus --name orders-bus --region "$Region"
 }
 
+echo ""
+echo "Verifying SES email identity for notifications..."
+SENDER_EMAIL="fabio.davila@utec.edu.pe"
+aws ses verify-email-identity --email-address "$SENDER_EMAIL" --region "$Region" 2>/dev/null || true
+echo "⚠️  Check your inbox ($SENDER_EMAIL) for SES verification email if this is first deployment"
+echo "   You must click the verification link before emails can be sent"
+echo ""
+
 echo "Deploying pedidos-backend (API + SQS). This will export the Pedidos table name for other stacks"
 cd pedidos-backend
 npm install
