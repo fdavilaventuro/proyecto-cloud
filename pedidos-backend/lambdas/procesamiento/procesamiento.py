@@ -7,7 +7,8 @@ import boto3
 
 # Optional: start a Step Functions execution when processing an order.
 # Set environment variable `STEP_FUNCTION_ARN` to the state machine ARN to enable.
-sf_client = boto3.client('stepfunctions') if os.environ.get('STEP_FUNCTION_ARN') else None
+# We'll create the Step Functions client at runtime to ensure the current environment
+# variable value is used (avoids import-time capture issues).
 
 def lambda_handler(event, context):
     print("Evento Procesamiento SQS:", json.dumps(event))
@@ -34,6 +35,8 @@ def lambda_handler(event, context):
             step_arn = os.environ.get('STEP_FUNCTION_ARN')
             if step_arn:
                 try:
+                    # Create client at runtime
+                    sf_client_local = boto3.client('stepfunctions')
                     # Construir input mínimo esperado por la máquina de estados
                     input_payload = json.dumps({
                         'id': order_id,
@@ -42,7 +45,8 @@ def lambda_handler(event, context):
                         'items': message.get('pedido', {}).get('items')
                     })
                     exec_name = f"exec-{order_id}-{int(datetime.utcnow().timestamp())}"
-                    resp = sf_client.start_execution(
+                    print(f"Starting StepFunction for {order_id} with ARN {step_arn} and name {exec_name}")
+                    resp = sf_client_local.start_execution(
                         stateMachineArn=step_arn,
                         name=exec_name,
                         input=input_payload
