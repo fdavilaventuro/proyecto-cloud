@@ -141,7 +141,7 @@ resources:
       Description: "ARN of the Step Functions state machine for KfcOrderFlow"
       Value:
         Fn::GetAtt:
-          - KfcOrderFlowStateMachine
+          - KfcOrderFlowStepFunctionsStateMachine
           - Arn
       Export:
         Name: "KfcOrderFlowArn-${opt:stage, 'dev'}"
