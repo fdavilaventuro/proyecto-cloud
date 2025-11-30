@@ -45,7 +45,7 @@ get_api_url_from_cloudformation() {
     fi
     
     echo "$apiUrl"
-fi
+}
 
 # If ApiUrl not provided, try to auto-discover
 if [ -z "$ApiUrl" ]; then
