@@ -96,6 +96,17 @@ while [ $(date +%s) -lt $deadline ]; do
     
     statusResp=$(curl -s "$ApiUrl/status?orderId=$orderId" \
         -H "Authorization: Bearer demo-token")
+    # If API GW returned an auth 403 body, retry a couple of times
+    if echo "$statusResp" | grep -q "execute-api:Invoke"; then
+        for i in 1 2; do
+            sleep 1
+            statusResp=$(curl -s "$ApiUrl/status?orderId=$orderId" \
+                -H "Authorization: Bearer demo-token")
+            if ! echo "$statusResp" | grep -q "execute-api:Invoke"; then
+                break
+            fi
+        done
+    fi
         currentStatus=$(echo "$statusResp" | sed -n 's/.*"currentStatus"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
     
     if [ -z "$currentStatus" ]; then
