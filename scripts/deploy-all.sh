@@ -65,10 +65,18 @@ else
     echo "Found Step Function ARN: $sfArn"
 fi
 
-echo "Deploying kfc-integraciones"
-cd kfc-integraciones
-npm install
-sls deploy -s "$Stage" --region "$Region"
-cd ..
-
-echo "Done. If you want to run the smoke-test, use the script scripts/smoke-test.sh and pass the API URL reported by pedidos-backend (or find it in CloudFormation outputs)."
+echo "Skipping kfc-integraciones (marked for removal - unused stack)"
+echo ""
+echo "✅ Deployment complete!"
+echo ""
+echo "Architecture:"
+echo "  - Payment: Automated via Step Functions (kfc-workflow)"
+echo "  - Kitchen/Packing/Delivery: Employee-driven via API endpoints"
+echo ""
+echo "To test the hybrid workflow, run:"
+echo "  bash scripts/smoke-test-hybrid.sh $Stage $Region"
+echo ""
+echo "Employee endpoints available:"
+echo "  PUT /employee/order/{id}/kitchen-ready"
+echo "  PUT /employee/order/{id}/packed"
+echo "  PUT /employee/order/{id}/deliver"
