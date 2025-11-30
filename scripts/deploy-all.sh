@@ -42,13 +42,19 @@ aws events describe-event-bus --name orders-bus --region "$Region" 2>/dev/null |
     aws events create-event-bus --name orders-bus --region "$Region"
 }
 
-echo "Deploying kfc-workflow (creates Orders table, Step Function, EventBus)"
+echo "Deploying pedidos-backend (API + SQS). This will export the Pedidos table name for other stacks"
+cd pedidos-backend
+npm install
+sls deploy -s "$Stage" --region "$Region"
+cd ..
+
+# Get Step Function ARN from CloudFormation outputs after workflow deploy
+echo "Deploying kfc-workflow (creates Step Function)"
 cd kfc-workflow
 npm install
 sls deploy -s "$Stage" --region "$Region"
 cd ..
 
-# Get Step Function ARN from CloudFormation outputs
 workflowStack="kfc-workflow-$Stage"
 echo "Fetching Step Function ARN from stack $workflowStack"
 sfArn=$(aws cloudformation describe-stacks --stack-name "$workflowStack" --region "$Region" --query "Stacks[0].Outputs[?OutputKey=='KfcOrderFlowArn'].OutputValue" --output text)
@@ -58,12 +64,6 @@ if [ -z "$sfArn" ] || [ "$sfArn" = "None" ]; then
 else
     echo "Found Step Function ARN: $sfArn"
 fi
-
-echo "Deploying pedidos-backend (API + SQS). Will reference kfc-workflow outputs if available"
-cd pedidos-backend
-npm install
-sls deploy -s "$Stage" --region "$Region"
-cd ..
 
 echo "Deploying kfc-integraciones"
 cd kfc-integraciones
