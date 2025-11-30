@@ -114,9 +114,10 @@ plugins:
 # Testing
 resources:
   Resources:
-    # -------------------------------
+    # No EventBus resource needed - using pre-existing orders-bus created previously
+    # If it doesn't exist, create it manually: aws events create-event-bus --name orders-bus --region us-east-1
+
     # DynamoDB - Orders
-    # -------------------------------
     OrdersTable:
       Type: AWS::DynamoDB::Table
       Properties:
@@ -129,13 +130,6 @@ resources:
           - AttributeName: id
             KeyType: HASH
 
-    # -------------------------------
-    # EventBridge Bus
-    # -------------------------------
-    OrdersEventBus:
-      Type: AWS::Events::EventBus
-      Properties:
-        Name: orders-bus
   Outputs:
     KfcOrderFlowArn:
       Description: "ARN of the Step Functions state machine for KfcOrderFlow"
@@ -149,6 +143,6 @@ resources:
         Name: "OrdersTableName-${opt:stage, 'dev'}"
     OrdersEventBusName:
       Description: "EventBridge bus name"
-      Value: !Ref OrdersEventBus
+      Value: orders-bus
       Export:
         Name: "OrdersEventBusName-${opt:stage, 'dev'}"

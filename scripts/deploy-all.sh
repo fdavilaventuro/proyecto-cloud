@@ -35,6 +35,13 @@ validate_serverless_vars() {
 
 validate_serverless_vars
 
+# Ensure EventBridge bus exists
+echo "Ensuring EventBridge bus 'orders-bus' exists..."
+aws events describe-event-bus --name orders-bus --region "$Region" 2>/dev/null || {
+    echo "Creating EventBridge bus 'orders-bus'"
+    aws events create-event-bus --name orders-bus --region "$Region"
+}
+
 echo "Deploying kfc-workflow (creates Orders table, Step Function, EventBus)"
 cd kfc-workflow
 npm install
