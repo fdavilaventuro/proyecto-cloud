@@ -193,6 +193,11 @@ resources:
       Value: !Sub "https://${ApiGatewayRestApi}.execute-api.${AWS::Region}.amazonaws.com/${sls:stage}"
       Export:
         Name: "PedidosApiUrl-${opt:stage, 'dev'}"
+    PedidosTableName:
+      Description: "DynamoDB Pedidos table name"
+      Value: !Ref PedidosTable
+      Export:
+        Name: "PedidosTableName-${opt:stage, 'dev'}"
     PedidosQueueName:
       Description: "SQS queue name for pedidos"
       Value: !Ref PedidosQueue

@@ -34,7 +34,7 @@ provider:
       Resource:
         - arn:aws:logs:${self:provider.region}:${file(../serverless.vars.yml):accountId}:*
   environment:
-    TABLE_NAME: Orders
+    TABLE_NAME: ${cf:pedidos-api-${opt:stage, 'dev'}.PedidosTableName, 'Orders'}
     EVENT_BUS: orders-bus
 
 functions:
