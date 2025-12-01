@@ -54,6 +54,9 @@ provider:
     # Read STEP_FUNCTION_ARN exported by the kfc-workflow stack (if deployed)
     STEP_FUNCTION_ARN: ${cf:kfc-workflow-${opt:stage, 'dev'}.KfcOrderFlowArn, ''}
     EVENT_BUS: orders-bus
+    # JWT settings for auth (use Secrets Manager/SSM in prod)
+    JWT_SECRET: ${opt:jwtSecret, 'dev-secret-change-me'}
+    JWT_ISSUER: pedidos-backend
 
 custom:
   sqsQueueName: ${self:provider.environment.SQS_QUEUE}
