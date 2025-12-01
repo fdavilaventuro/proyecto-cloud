@@ -58,9 +58,15 @@ provider:
     JWT_SECRET: ${opt:jwtSecret, 'dev-secret-change-me'}
     JWT_ISSUER: pedidos-backend
 
+plugins:
+  - serverless-python-requirements
+
 custom:
   sqsQueueName: ${self:provider.environment.SQS_QUEUE}
   sqsDLQName: ${self:provider.environment.SQS_QUEUE}-dlq
+  pythonRequirements:
+    dockerizePip: false
+    slim: true
 
 functions:
   login:
