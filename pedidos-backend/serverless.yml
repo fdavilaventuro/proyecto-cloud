@@ -181,6 +181,19 @@ functions:
             identitySource: method.request.header.Authorization
             resultTtlInSeconds: 0
 
+  getOrders:
+    handler: lambdas.pedidos.employee.get_orders
+    events:
+      - http:
+          path: /employee/orders
+          method: get
+          cors: true
+          authorizer:
+            type: token
+            name: autorizador
+            identitySource: method.request.header.Authorization
+            resultTtlInSeconds: 0
+
 resources:
   Resources:
     PedidosTable:

@@ -162,3 +162,30 @@ def assign_delivery(event, context):
     except Exception as e:
         print(f"Error assigning delivery: {repr(e)}")
         return json_response({'error': f'Error interno en deliver: {type(e).__name__}: {str(e)}'}, 500)
+
+
+def get_orders(event, context):
+    """
+    GET /employee/orders
+    Fetch all orders for the employee dashboard.
+    """
+    try:
+        table = pedidos_table()
+        
+        # Scan table to get all orders (for now, optimization can be done later with query by status or date)
+        response = table.scan()
+        items = response.get('Items', [])
+        
+        # Handle pagination if necessary (for now just get first page)
+        while 'LastEvaluatedKey' in response:
+            response = table.scan(ExclusiveStartKey=response['LastEvaluatedKey'])
+            items.extend(response.get('Items', []))
+            
+        return json_response(items, 200)
+
+    except ClientError as e:
+        print(f"AWS ClientError in get_orders: {repr(e)}")
+        return json_response({'error': f'Error AWS en get_orders: {e.response.get("Error", {}).get("Code")}'}, 500)
+    except Exception as e:
+        print(f"Error fetching orders: {repr(e)}")
+        return json_response({'error': f'Error interno en get_orders: {type(e).__name__}: {str(e)}'}, 500)
