@@ -1,7 +1,7 @@
 import json
 import os
 import boto3
-import bcrypt
+from passlib.hash import pbkdf2_sha256
 from common.token import create_token
 
 dynamodb = boto3.resource('dynamodb')
@@ -57,7 +57,7 @@ def lambda_handler(event, context):
 
     # Verificar password
     password_hash = user.get('passwordHash', '')
-    if not bcrypt.checkpw(password.encode('utf-8'), password_hash.encode('utf-8')):
+    if not pbkdf2_sha256.verify(password, password_hash):
         return {
             'statusCode': 401,
             'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},

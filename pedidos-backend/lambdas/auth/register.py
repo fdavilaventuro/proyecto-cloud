@@ -2,8 +2,8 @@ import json
 import uuid
 import os
 import boto3
-import bcrypt
 from datetime import datetime
+from passlib.hash import pbkdf2_sha256
 from common.token import create_token
 
 dynamodb = boto3.resource('dynamodb')
@@ -55,8 +55,8 @@ def lambda_handler(event, context):
             'body': json.dumps({'error': 'Error al verificar email'})
         }
 
-    # Hash password con bcrypt
-    password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    # Hash password con passlib (pure Python)
+    password_hash = pbkdf2_sha256.hash(password)
     
     # Crear usuario
     user_id = f'user-{uuid.uuid4().hex[:8]}'

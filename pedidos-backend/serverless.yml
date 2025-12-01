@@ -68,7 +68,7 @@ custom:
   sqsQueueName: ${self:provider.environment.SQS_QUEUE}
   sqsDLQName: ${self:provider.environment.SQS_QUEUE}-dlq
   pythonRequirements:
-    dockerizePip: true
+    dockerizePip: false
     slim: true
     pythonBin: python3
 
