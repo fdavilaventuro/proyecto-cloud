@@ -67,6 +67,7 @@ custom:
   pythonRequirements:
     dockerizePip: false
     slim: true
+    pythonBin: python3
 
 functions:
   login:
