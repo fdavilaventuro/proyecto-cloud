@@ -1,4 +1,4 @@
-org: fabioedv
+org: ${file(../serverless.vars.yml):org}
 service: kfc-integraciones
 
 provider:

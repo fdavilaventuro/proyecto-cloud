@@ -54,6 +54,16 @@ export default function Header({ onLocationClick }: { onLocationClick?: () => vo
                 <MapPin size={18} />
                 <span className="hidden lg:inline">Ingresa tu ubicación</span>
               </button>
+
+              {/* 🔴 NUEVO: botón para empleados */}
+              <Link
+                href="/empleado"
+                className="hidden md:inline-flex items-center text-xs md:text-sm bg-white/10 px-3 py-1.5 rounded-full hover:bg-white/20 transition"
+              >
+                Soy empleado
+              </Link>
+              {/* 🔴 FIN NUEVO */}
+
               <Link href="/login" className="text-xs md:text-sm hover:bg-red-700 px-2 py-1 rounded transition">
                 <div>Hola, identifícate</div>
                 <div className="flex items-center gap-1">Inicia sesión</div>
