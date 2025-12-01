@@ -1,5 +1,6 @@
 import os
 import time
+from typing import Optional
 import jwt
 
 
@@ -15,7 +16,7 @@ def _get_issuer() -> str:
     return os.environ.get('JWT_ISSUER', 'pedidos-backend')
 
 
-def create_token(user_id: str, claims: dict | None = None, expires_in_sec: int = 3600) -> str:
+def create_token(user_id: str, claims: Optional[dict] = None, expires_in_sec: int = 3600) -> str:
     now = int(time.time())
     payload = {
         'sub': user_id,
