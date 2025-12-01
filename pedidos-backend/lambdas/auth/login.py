@@ -1,5 +1,10 @@
 import json
+import os
+import boto3
+import bcrypt
 from common.token import create_token
+
+dynamodb = boto3.resource('dynamodb')
 
 
 def lambda_handler(event, context):
@@ -13,22 +18,67 @@ def lambda_handler(event, context):
             'body': json.dumps({'error': 'Body inválido: debe ser JSON'})
         }
 
-    # Para ambiente académico: validar email y opcionalmente password
+    # Validar campos requeridos
     email = body.get('email')
-    password = body.get('password')  # no se valida contra DB en demo
-    if not email:
+    password = body.get('password')
+    
+    if not email or not password:
         return {
             'statusCode': 400,
             'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-            'body': json.dumps({'error': 'Email es requerido'})
+            'body': json.dumps({'error': 'Email y password son requeridos'})
         }
 
-    # Emitir token con claims básicos
-    token = create_token(user_id=email, claims={'email': email})
+    table = dynamodb.Table(os.environ.get('USERS_TABLE'))
+    
+    # Buscar usuario por email
+    try:
+        response = table.query(
+            IndexName='EmailIndex',
+            KeyConditionExpression='email = :email',
+            ExpressionAttributeValues={':email': email}
+        )
+        items = response.get('Items', [])
+        if not items:
+            return {
+                'statusCode': 401,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'error': 'Credenciales inválidas'})
+            }
+        
+        user = items[0]
+    except Exception as e:
+        print(f'Error querying user: {repr(e)}')
+        return {
+            'statusCode': 500,
+            'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+            'body': json.dumps({'error': 'Error al buscar usuario'})
+        }
+
+    # Verificar password
+    password_hash = user.get('passwordHash', '')
+    if not bcrypt.checkpw(password.encode('utf-8'), password_hash.encode('utf-8')):
+        return {
+            'statusCode': 401,
+            'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+            'body': json.dumps({'error': 'Credenciales inválidas'})
+        }
+
+    # Emitir token JWT
+    token = create_token(
+        user_id=user['userId'],
+        claims={'email': user['email'], 'name': user.get('name', 'Usuario')}
+    )
+    
     return {
         'statusCode': 200,
         'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-        'body': json.dumps({'message': 'Login exitoso', 'token': token})
+        'body': json.dumps({
+            'message': 'Login exitoso',
+            'token': token,
+            'userId': user['userId'],
+            'name': user.get('name', 'Usuario')
+        })
     }
 
 import json

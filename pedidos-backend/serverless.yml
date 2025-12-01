@@ -20,6 +20,8 @@ provider:
         - dynamodb:Scan
       Resource:
         - arn:aws:dynamodb:${self:provider.region}:${file(../serverless.vars.yml):accountId}:table/${self:provider.environment.PEDIDOS_TABLE}
+        - arn:aws:dynamodb:${self:provider.region}:${file(../serverless.vars.yml):accountId}:table/${self:provider.environment.USERS_TABLE}
+        - arn:aws:dynamodb:${self:provider.region}:${file(../serverless.vars.yml):accountId}:table/${self:provider.environment.USERS_TABLE}/index/*
     - Effect: Allow
       Action:
         - sqs:SendMessage
@@ -50,6 +52,7 @@ provider:
     PEDIDOS_TABLE: ${self:service}-${self:provider.environment.STAGE}-pedidos
     MENU_TABLE: ${self:service}-${self:provider.environment.STAGE}-menu
     LOCALES_TABLE: ${self:service}-${self:provider.environment.STAGE}-locales
+    USERS_TABLE: ${self:service}-${self:provider.environment.STAGE}-users
     SQS_QUEUE: ${self:service}-${self:provider.environment.STAGE}-pedidos-queue
     # Read STEP_FUNCTION_ARN exported by the kfc-workflow stack (if deployed)
     STEP_FUNCTION_ARN: ${cf:kfc-workflow-${opt:stage, 'dev'}.KfcOrderFlowArn, ''}
@@ -256,6 +259,27 @@ resources:
           - AttributeName: storeId
             KeyType: HASH
         BillingMode: PAY_PER_REQUEST
+
+    UsersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.USERS_TABLE}
+        AttributeDefinitions:
+          - AttributeName: userId
+            AttributeType: S
+          - AttributeName: email
+            AttributeType: S
+        KeySchema:
+          - AttributeName: userId
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+        GlobalSecondaryIndexes:
+          - IndexName: EmailIndex
+            KeySchema:
+              - AttributeName: email
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
 
     PedidosQueue:
       Type: AWS::SQS::Queue
