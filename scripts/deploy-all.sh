@@ -90,3 +90,7 @@ echo "Employee endpoints available:"
 echo "  PUT /employee/order/{id}/kitchen-ready"
 echo "  PUT /employee/order/{id}/packed"
 echo "  PUT /employee/order/{id}/deliver"
+echo ""
+echo "Frontend .env.local:"
+apiUrl=$(aws cloudformation describe-stacks --stack-name "pedidos-api-$Stage" --region "$Region" --query "Stacks[0].Outputs[?OutputKey=='ApiUrl'].OutputValue" --output text)
+echo "$apiUrl"
