@@ -131,7 +131,7 @@ def lambda_handler(event, context):
     
     # SNS delivers to all confirmed email subscriptions on the topic
     # Recipient here is informational only
-    recipient_email = detail.get('email', 'fabio.davila@utec.edu.pe')
+    recipient_email = detail.get('email', 'gian.aedo@utec.edu.pe')
     
     # Format email content
     subject = template['subject'].format(orderId=order_id)

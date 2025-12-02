@@ -7,7 +7,7 @@
 set -e
 
 REGION="${1:-us-east-1}"
-EMAIL="fabio.davila@utec.edu.pe"
+EMAIL="gian.aedo@utec.edu.pe"
 
 echo "⚠️  AWS Academy LabRole Limitation"
 echo "=================================="
