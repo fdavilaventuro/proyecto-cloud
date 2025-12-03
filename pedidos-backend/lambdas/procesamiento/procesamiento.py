@@ -33,6 +33,7 @@ def lambda_handler(event, context):
 
             # Si está configurado, iniciar la ejecución del Step Function
             step_arn = os.environ.get('STEP_FUNCTION_ARN')
+            print(f"DEBUG: STEP_FUNCTION_ARN env var: '{step_arn}'")
             if step_arn:
                 try:
                     # Create client at runtime

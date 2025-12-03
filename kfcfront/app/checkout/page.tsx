@@ -38,6 +38,16 @@ export default function CheckoutPage() {
             return
         }
 
+        // Pre-fill user data
+        const savedName = localStorage.getItem("userName")
+        const savedEmail = localStorage.getItem("userEmail")
+
+        setFormData(prev => ({
+            ...prev,
+            name: savedName || prev.name,
+            email: savedEmail || prev.email
+        }))
+
         // Load cart
         const savedCart = localStorage.getItem("kfc-cart")
         if (savedCart) {

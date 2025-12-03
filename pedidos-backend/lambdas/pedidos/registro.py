@@ -55,7 +55,11 @@ def lambda_handler(event, context):
             'id': order_id,
             'orderId': order_id,
             'storeId': body['storeId'],
-            'client': body['client'],
+            'client': {
+                'name': body['client']['name'],
+                'phone': body['client']['phone'],
+                'email': body['client']['email'].lower() if body['client'].get('email') else ''
+            },
             'address': body['address'],
             'total': body['total'],
             'status': 'PENDING',

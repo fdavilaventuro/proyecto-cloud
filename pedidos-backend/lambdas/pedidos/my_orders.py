@@ -47,6 +47,8 @@ def lambda_handler(event, context):
     if not email:
         return json_response({'error': 'Email requerido'}, status=400)
 
+    email = email.lower()
+
     try:
         table = pedidos_table()
         
