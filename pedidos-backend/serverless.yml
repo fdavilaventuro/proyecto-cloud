@@ -105,6 +105,19 @@ functions:
             identitySource: method.request.header.Authorization
             resultTtlInSeconds: 0
 
+  myOrders:
+    handler: lambdas.pedidos.my_orders.lambda_handler
+    events:
+      - http:
+          path: /orders/mine
+          method: get
+          cors: true
+          authorizer:
+            type: token
+            name: autorizador
+            identitySource: method.request.header.Authorization
+            resultTtlInSeconds: 0
+
   status:
     handler: lambdas.pedidos.status.lambda_handler
     events:

@@ -75,7 +75,7 @@ export async function createOrder(orderData: CreateOrderRequest): Promise<OrderR
  */
 export async function getOrderStatus(orderId: string): Promise<OrderStatusResponse> {
     try {
-        const response = await authFetch(`${API_BASE}/order/${orderId}/status`, {
+        const response = await authFetch(`${API_BASE}/status?orderId=${orderId}`, {
             method: 'GET',
         })
 
@@ -87,6 +87,27 @@ export async function getOrderStatus(orderId: string): Promise<OrderStatusRespon
         return await response.json()
     } catch (error) {
         console.error('Error fetching order status:', error)
+        throw error
+    }
+}
+/**
+ * Obtiene los pedidos del usuario actual
+ * Requiere autenticación JWT
+ */
+export async function getMyOrders(email: string): Promise<OrderStatusResponse[]> {
+    try {
+        const response = await authFetch(`${API_BASE}/orders/mine?email=${encodeURIComponent(email)}`, {
+            method: 'GET',
+        })
+
+        if (!response.ok) {
+            const error = await response.json()
+            throw new Error(error.error || 'Error al consultar pedidos')
+        }
+
+        return await response.json()
+    } catch (error) {
+        console.error('Error fetching my orders:', error)
         throw error
     }
 }

@@ -36,6 +36,8 @@ export default function LoginPage() {
       if (data.name) {
         setUserName(data.name)
       }
+      // Save email for order history fetching
+      localStorage.setItem("userEmail", email)
 
       // Dispatch storage event to update header immediately
       window.dispatchEvent(new Event("storage"))

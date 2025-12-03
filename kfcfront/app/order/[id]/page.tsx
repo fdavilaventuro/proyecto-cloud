@@ -10,6 +10,7 @@ import Link from "next/link"
 
 const STATUS_STEPS = [
     { id: "PENDING", label: "Pendiente", icon: Clock, description: "Tu pedido ha sido recibido" },
+    { id: "PROCESSING", label: "Procesando", icon: Clock, description: "Procesando tu pago" },
     { id: "PAID", label: "Confirmado", icon: CheckCircle, description: "Pago verificado correctamente" },
     { id: "PREPARING", label: "En Cocina", icon: ChefHat, description: "Estamos preparando tu pedido" },
     { id: "READY", label: "Listo", icon: Bike, description: "Tu pedido está listo para entrega" },
