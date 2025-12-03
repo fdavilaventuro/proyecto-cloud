@@ -154,8 +154,32 @@ export default function ProductDetail() {
                     <Plus size={18} />
                   </button>
                 </div>
-                <button className="flex-1 bg-gray-300 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-400">
-                  Agregar (S/.{(product.price * quantity).toFixed(2)})
+                <button
+                  onClick={() => {
+                    const cartItem = {
+                      ...product,
+                      quantity,
+                      recipe: recipes.find(r => r.id === selectedRecipe)?.name,
+                      complement: complements.find(c => c.id === selectedComplement)?.name,
+                      complementPrice: complements.find(c => c.id === selectedComplement)?.price || 0,
+                      // Add complement price to total if any
+                      price: product.price + (complements.find(c => c.id === selectedComplement)?.price || 0)
+                    }
+
+                    // Add to localStorage
+                    const savedCart = localStorage.getItem("kfc-cart")
+                    const currentCart = savedCart ? JSON.parse(savedCart) : []
+                    const newCart = [...currentCart, cartItem]
+                    localStorage.setItem("kfc-cart", JSON.stringify(newCart))
+
+                    // Dispatch event
+                    window.dispatchEvent(new Event('storage'))
+
+                    alert("Producto agregado al carrito")
+                  }}
+                  className="flex-1 bg-red-600 text-white py-3 rounded-lg font-semibold hover:bg-red-700 active:bg-red-800 transition-colors"
+                >
+                  Agregar (S/.{((product.price + (complements.find(c => c.id === selectedComplement)?.price || 0)) * quantity).toFixed(2)})
                 </button>
               </div>
             </div>
@@ -265,8 +289,8 @@ export default function ProductDetail() {
                       </label>
                     ))}
                   </div>
-                  <div className="mt-4 bg-yellow-50 text-yellow-800 text-sm px-3 py-2 rounded border border-yellow-300">
-                    Requerido
+                  <div className="mt-4 bg-green-100 text-green-800 text-sm px-3 py-2 rounded border border-green-300">
+                    Completado
                   </div>
                 </div>
               )}

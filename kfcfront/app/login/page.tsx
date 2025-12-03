@@ -1,56 +1,118 @@
 "use client"
 
-import { Smartphone, Apple } from "lucide-react"
+import { useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import Image from "next/image"
+import Link from "next/link"
+import { setToken } from "@/lib/auth"
 
 export default function LoginPage() {
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
+  const router = useRouter()
+  const searchParams = useSearchParams()
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError("")
+
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.error || "Error al iniciar sesión")
+      }
+
+      setToken(data.token)
+
+      // Redirect to intended page or home
+      const redirect = searchParams.get("redirect") || "/"
+      router.push(redirect)
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-white flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="flex justify-center mb-8">
-          <Image
-            src="https://www.kfc.com.pe/images/kfc/logo.svg"
-            alt="KFC Peru"
-            width={80}
-            height={80}
-            className="h-20 w-auto"
-          />
+          <Link href="/">
+            <Image
+              src="https://www.kfc.com.pe/images/kfc/logo.svg"
+              alt="KFC Peru"
+              width={80}
+              height={80}
+              className="h-20 w-auto"
+            />
+          </Link>
         </div>
 
         {/* Title */}
-        <h1 className="text-3xl font-bold text-center mb-2 text-gray-900">Crea una cuenta o inicia sesión</h1>
-        <p className="text-center text-gray-600 mb-8">Ingresa o crea tu cuenta en simples pasos.</p>
+        <h1 className="text-3xl font-bold text-center mb-2 text-gray-900">Inicia sesión</h1>
+        <p className="text-center text-gray-600 mb-8">Ingresa tus credenciales para continuar.</p>
 
-        {/* Auth Buttons */}
-        <div className="space-y-4 mb-8">
-          <button className="w-full border-2 border-gray-300 rounded-lg py-3 px-4 font-bold text-gray-900 hover:bg-gray-50 transition flex items-center justify-center gap-3">
-            <svg className="w-5 h-5" viewBox="0 0 24 24">
-              <image
-                href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%234285F4' d='M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z'/%3E%3Cpath fill='%2334A853' d='M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z'/%3E%3Cpath fill='%23FBBC05' d='M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z'/%3E%3Cpath fill='%23EA4335' d='M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z'/%3E%3C/svg%3E"
-                x="0"
-                y="0"
-                width="20"
-                height="20"
-              />
-            </svg>
-            Continuar con Google
-          </button>
+        {/* Login Form */}
+        <form onSubmit={handleLogin} className="space-y-4 mb-8">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              placeholder="tu@email.com"
+              required
+            />
+          </div>
 
-          <button className="w-full border-2 border-gray-300 rounded-lg py-3 px-4 font-bold text-gray-900 hover:bg-gray-50 transition flex items-center justify-center gap-3">
-            <Smartphone size={20} className="text-gray-900" />
-            Continuar con celular
-          </button>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              placeholder="••••••••"
+              required
+            />
+          </div>
 
-          <button className="w-full border-2 border-gray-300 rounded-lg py-3 px-4 font-bold text-gray-900 hover:bg-gray-50 transition flex items-center justify-center gap-3">
-            <Apple size={20} className="text-gray-900" />
-            Continuar con Apple
+          {error && (
+            <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-red-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-red-700 transition disabled:bg-gray-400"
+          >
+            {loading ? "Iniciando sesión..." : "Ingresar"}
           </button>
-        </div>
+        </form>
 
         {/* Footer Link */}
-        <div className="text-center">
-          <button className="text-gray-900 hover:text-[#e4002b] font-bold transition">Recuperar contraseña</button>
+        <div className="text-center space-y-4">
+          <Link href="/register" className="block text-red-600 font-bold hover:underline">
+            ¿No tienes cuenta? Regístrate aquí
+          </Link>
+          <button className="text-gray-500 text-sm hover:text-gray-700 transition">
+            Recuperar contraseña
+          </button>
         </div>
       </div>
     </div>

@@ -368,10 +368,14 @@ export default function MenuPage() {
   }, [])
 
   const addToCart = (product: any) => {
-    const newCart = [...cart, product]
+    const newCart = [...cart, { ...product, quantity: 1 }]
     setCart(newCart)
     localStorage.setItem("kfc-cart", JSON.stringify(newCart))
-    alert(`${product.name} agregado al carrito`)
+
+    // Dispatch event for header update
+    window.dispatchEvent(new Event('storage'))
+
+    alert("Producto agregado al carrito")
   }
 
   const filteredProducts = products.filter(p => p.category === activeTab)

@@ -7,6 +7,7 @@ import SideMenu from "./side-menu"
 
 export default function Header({ onLocationClick }: { onLocationClick?: () => void }) {
   const [showMenu, setShowMenu] = useState(false)
+  const [cartCount, setCartCount] = useState(0) // Added cartCount state
 
   return (
     <>
@@ -26,25 +27,6 @@ export default function Header({ onLocationClick }: { onLocationClick?: () => vo
                 className="h-10 w-auto"
               />
             </Link>
-
-            <div className="flex-1 max-w-md">
-              <div className="relative hidden md:flex">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={20} />
-                <input
-                  type="text"
-                  placeholder="Buscar &quot;Mega&quot;"
-                  className="w-full pl-12 pr-4 py-3 rounded-full text-gray-800 text-sm font-medium"
-                />
-              </div>
-              <div className="flex md:hidden">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 z-10" size={20} />
-                <input
-                  type="text"
-                  placeholder="Buscar"
-                  className="w-full pl-12 pr-4 py-3 rounded-full text-gray-800 text-sm"
-                />
-              </div>
-            </div>
 
             <div className="flex items-center gap-2 md:gap-4 text-sm md:text-base whitespace-nowrap">
               <button
@@ -70,9 +52,11 @@ export default function Header({ onLocationClick }: { onLocationClick?: () => vo
               </Link>
               <Link href="/cart" className="relative hover:bg-red-700 px-2 py-1 rounded transition">
                 <ShoppingCart size={20} />
-                <span className="absolute -top-2 -right-2 bg-white text-[#e4002b] w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold">
-                  0
-                </span>
+                {cartCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-white text-[#e4002b] w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold">
+                    {cartCount}
+                  </span>
+                )}
               </Link>
             </div>
           </div>
