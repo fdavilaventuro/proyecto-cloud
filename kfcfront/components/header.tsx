@@ -1,5 +1,5 @@
 "use client"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Menu, Search, MapPin, ShoppingCart, X } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
@@ -8,6 +8,41 @@ import SideMenu from "./side-menu"
 export default function Header({ onLocationClick }: { onLocationClick?: () => void }) {
   const [showMenu, setShowMenu] = useState(false)
   const [cartCount, setCartCount] = useState(0) // Added cartCount state
+  const [userName, setUserName] = useState<string | null>(null)
+
+  useEffect(() => {
+    const updateState = () => {
+      // Update cart count
+      const savedCart = localStorage.getItem("kfc-cart")
+      if (savedCart) {
+        try {
+          const items = JSON.parse(savedCart)
+          setCartCount(items.length)
+        } catch (e) {
+          setCartCount(0)
+        }
+      } else {
+        setCartCount(0)
+      }
+
+      // Update user name
+      const storedName = localStorage.getItem("userName")
+      setUserName(storedName)
+    }
+
+    // Initial load
+    updateState()
+
+    // Listen for storage changes
+    window.addEventListener('storage', updateState)
+
+    const interval = setInterval(updateState, 1000)
+
+    return () => {
+      window.removeEventListener('storage', updateState)
+      clearInterval(interval)
+    }
+  }, [])
 
   return (
     <>
@@ -46,9 +81,9 @@ export default function Header({ onLocationClick }: { onLocationClick?: () => vo
               </Link>
               {/* 🔴 FIN NUEVO */}
 
-              <Link href="/login" className="text-xs md:text-sm hover:bg-red-700 px-2 py-1 rounded transition">
-                <div>Hola, identifícate</div>
-                <div className="flex items-center gap-1">Inicia sesión</div>
+              <Link href={userName ? "/account" : "/login"} className="text-xs md:text-sm hover:bg-red-700 px-2 py-1 rounded transition">
+                <div>{userName ? `Hola, ${userName}` : "Hola, identifícate"}</div>
+                <div className="flex items-center gap-1">{userName ? "Mi Cuenta" : "Inicia sesión"}</div>
               </Link>
               <Link href="/cart" className="relative hover:bg-red-700 px-2 py-1 rounded transition">
                 <ShoppingCart size={20} />

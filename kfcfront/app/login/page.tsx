@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
-import { setToken } from "@/lib/auth"
+import { setToken, setUserName } from "@/lib/auth"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
@@ -33,6 +33,12 @@ export default function LoginPage() {
       }
 
       setToken(data.token)
+      if (data.name) {
+        setUserName(data.name)
+      }
+
+      // Dispatch storage event to update header immediately
+      window.dispatchEvent(new Event("storage"))
 
       // Redirect to intended page or home
       const redirect = searchParams.get("redirect") || "/"
