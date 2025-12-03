@@ -82,14 +82,13 @@ echo "Register HTTP Status: $registerStatus"
 # Extract token from response using sed
 token=$(echo "$registerBody" | sed -n 's/.*"token"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
 
-# If registration fails (user might already exist), try login
-if [ -z "$token" ] || [ "$registerStatus" != "200" ]; then
-    echo "Registration failed or user exists, attempting login..."
+# Check if registration was successful (200 or 201) and token was obtained
+if [ -n "$token" ] && ([ "$registerStatus" = "200" ] || [ "$registerStatus" = "201" ]); then
+    echo "Registration successful. Token obtained."
+else
+    echo "Registration failed (status: $registerStatus), attempting login with same credentials..."
     
-    # For smoke test, use a fixed test user instead
-    testEmail="test@example.com"
-    testPassword="test123"
-    
+    # Try login with the same credentials we just tried to register
     loginResp=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST "$ApiUrl/auth/login" \
         -H "Content-Type: application/json" \
         -d "{\"email\":\"$testEmail\",\"password\":\"$testPassword\"}")
@@ -103,12 +102,14 @@ if [ -z "$token" ] || [ "$registerStatus" != "200" ]; then
     
     if [ -z "$token" ]; then
         echo "Error: Failed to obtain authentication token" >&2
+        echo "Registration response: $registerBody" >&2
         echo "Login response: $loginBody" >&2
         exit 1
     fi
+    
+    echo "Login successful. Token obtained."
 fi
 
-echo "Successfully authenticated. Token obtained."
 echo ""
 
 # Create order
