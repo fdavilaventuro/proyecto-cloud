@@ -1,17 +1,35 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { API_BASE, getToken, authFetch } from "@/lib/auth"
 
 export default function PedirPage() {
     const [client, setClient] = useState("")
     const [address, setAddress] = useState("")
     const [status, setStatus] = useState<string | null>(null)
     const [orderId, setOrderId] = useState<string | null>(null)
+    const [isAuthenticated, setIsAuthenticated] = useState(false)
+    const router = useRouter()
 
-    const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
+    useEffect(() => {
+        const token = getToken()
+        if (!token) {
+            setStatus("error: No estás autenticado. Redirigiendo al login...")
+            setTimeout(() => router.push("/login"), 2000)
+        } else {
+            setIsAuthenticated(true)
+        }
+    }, [router])
 
     async function submitOrder(e: React.FormEvent) {
         e.preventDefault()
+
+        if (!isAuthenticated) {
+            setStatus("error: Debes iniciar sesión primero")
+            return
+        }
+
         setStatus("creating")
 
         const body = {
@@ -23,18 +41,32 @@ export default function PedirPage() {
         }
 
         try {
-            const res = await fetch(`${apiBase}/order`, {
+            const res = await authFetch(`${API_BASE}/order`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(body)
             })
+
+            if (!res.ok) {
+                const data = await res.json()
+                throw new Error(data.error || data.message || 'Error creating order')
+            }
+
             const data = await res.json()
-            if (!res.ok) throw new Error(data.error || 'Error creating order')
             setOrderId(data.orderId)
             setStatus("created")
         } catch (err: any) {
             setStatus("error: " + (err.message || String(err)))
         }
+    }
+
+    if (!isAuthenticated && status?.includes("autenticado")) {
+        return (
+            <main className="p-8 max-w-2xl mx-auto">
+                <div className="bg-yellow-50 border border-yellow-200 rounded p-4">
+                    <p className="text-yellow-800">{status}</p>
+                </div>
+            </main>
+        )
     }
 
     return (
@@ -49,7 +81,7 @@ export default function PedirPage() {
             </form>
 
             <div className="mt-6">
-                <strong>API:</strong> <span className="font-mono">{apiBase}</span>
+                <strong>API:</strong> <span className="font-mono">{API_BASE}</span>
             </div>
 
             <div className="mt-4">
@@ -60,7 +92,7 @@ export default function PedirPage() {
                 <div className="mt-4">
                     <strong>OrderId:</strong> <span className="font-mono">{orderId}</span>
                     <div className="mt-2">
-                        Puedes consultar: <code>{apiBase}/status?orderId={orderId}</code>
+                        Puedes consultar: <code>{API_BASE}/status?orderId={orderId}</code>
                     </div>
                 </div>
             )}

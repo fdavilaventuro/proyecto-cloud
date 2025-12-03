@@ -63,15 +63,63 @@ fi
 
 echo "Using API: $ApiUrl"
 
+# Step 1: Register or login to get JWT token
+testEmail="smoketest-$(date +%s)@example.com"
+testPassword="TestPass123!"
+testName="Smoke Test User"
+
+echo ""
+echo "Step 1: Registering test user..."
+registerResp=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST "$ApiUrl/auth/register" \
+    -H "Content-Type: application/json" \
+    -d "{\"email\":\"$testEmail\",\"password\":\"$testPassword\",\"name\":\"$testName\"}")
+
+registerStatus=$(echo "$registerResp" | grep HTTP_STATUS | cut -d: -f2)
+registerBody=$(echo "$registerResp" | sed '$d')
+
+echo "Register HTTP Status: $registerStatus"
+
+# Extract token from response using sed
+token=$(echo "$registerBody" | sed -n 's/.*"token"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
+
+# If registration fails (user might already exist), try login
+if [ -z "$token" ] || [ "$registerStatus" != "200" ]; then
+    echo "Registration failed or user exists, attempting login..."
+    
+    # For smoke test, use a fixed test user instead
+    testEmail="test@example.com"
+    testPassword="test123"
+    
+    loginResp=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST "$ApiUrl/auth/login" \
+        -H "Content-Type: application/json" \
+        -d "{\"email\":\"$testEmail\",\"password\":\"$testPassword\"}")
+    
+    loginStatus=$(echo "$loginResp" | grep HTTP_STATUS | cut -d: -f2)
+    loginBody=$(echo "$loginResp" | sed '$d')
+    
+    echo "Login HTTP Status: $loginStatus"
+    
+    token=$(echo "$loginBody" | sed -n 's/.*"token"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
+    
+    if [ -z "$token" ]; then
+        echo "Error: Failed to obtain authentication token" >&2
+        echo "Login response: $loginBody" >&2
+        exit 1
+    fi
+fi
+
+echo "Successfully authenticated. Token obtained."
+echo ""
+
 # Create order
 body='{"storeId":"S1","client":"Test User","address":"123 Main","total":15,"items":[{"productId":"P1","qty":1,"price":15}]}'
 
-echo "Creating order..."
+echo "Step 2: Creating order..."
 echo "POST $ApiUrl/order"
 echo "Body: $body"
 createResp=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST "$ApiUrl/order" \
     -H "Content-Type: application/json" \
-    -H "Authorization: Bearer demo-token" \
+    -H "Authorization: Bearer $token" \
     -d "$body")
 
 httpStatus=$(echo "$createResp" | grep HTTP_STATUS | cut -d: -f2)
@@ -95,13 +143,13 @@ while [ $(date +%s) -lt $deadline ]; do
     sleep "$PollIntervalSeconds"
     
     statusResp=$(curl -s "$ApiUrl/status?orderId=$orderId" \
-        -H "Authorization: Bearer demo-token")
+        -H "Authorization: Bearer $token")
     # If API GW returned an auth 403 body, retry a couple of times
     if echo "$statusResp" | grep -q "execute-api:Invoke"; then
         for i in 1 2; do
             sleep 1
             statusResp=$(curl -s "$ApiUrl/status?orderId=$orderId" \
-                -H "Authorization: Bearer demo-token")
+                -H "Authorization: Bearer $token")
             if ! echo "$statusResp" | grep -q "execute-api:Invoke"; then
                 break
             fi
