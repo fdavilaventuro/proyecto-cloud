@@ -51,7 +51,7 @@ resources:
       Type: AWS::Events::Rule
       Properties:
         Name: order-ready
-        EventBusName: !Sub ${self:provider.environment.EVENT_BUS}
+        EventBusName: orders-bus
         EventPattern:
           detail-type:
             - ORDER.READY
@@ -63,7 +63,7 @@ resources:
       Type: AWS::Events::Rule
       Properties:
         Name: order-paid
-        EventBusName: !Sub ${self:provider.environment.EVENT_BUS}
+        EventBusName: orders-bus
         EventPattern:
           detail-type:
             - ORDER.PAID
