@@ -1,5 +1,5 @@
 # Centralized Serverless variables for multi-service deployments
 # Edit these values to switch accounts, roles, or organization across all services.
-accountId: 866725828595
+accountId: 971647339908
 labRole: LabRole
 org: gianaedo

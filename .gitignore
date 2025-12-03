@@ -19,6 +19,7 @@ wheels/
 .installed.cfg
 *.egg
 .venv/
+package-lock.json
 venv/
 ENV/
 
