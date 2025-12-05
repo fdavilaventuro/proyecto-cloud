@@ -7,7 +7,7 @@ export default function StatusPage() {
     const [status, setStatus] = useState<any>(null)
     const [loading, setLoading] = useState(false)
 
-    const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
+    const apiBase = "https://hvleepsc4d.execute-api.us-east-1.amazonaws.com/dev"
 
     async function fetchStatus() {
         if (!orderId) return

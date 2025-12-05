@@ -49,8 +49,8 @@ export default function PedidosPage() {
 
     try {
       const res = await authFetch(`${apiBase}/employee/orders`, {
-  cache: "no-store",
-});
+        cache: "no-store",
+      });
 
 
       let data: any = [];
@@ -83,6 +83,13 @@ export default function PedidosPage() {
         deliveryPerson:
           raw.deliveryPerson ?? raw.delivery_person ?? raw.rider ?? undefined,
       }));
+
+      // Sort by createdAt descending (newest first)
+      normalized.sort((a, b) => {
+        const dateA = new Date(a.createdAt || 0).getTime();
+        const dateB = new Date(b.createdAt || 0).getTime();
+        return dateB - dateA;
+      });
 
       setOrders(normalized);
     } catch (err) {

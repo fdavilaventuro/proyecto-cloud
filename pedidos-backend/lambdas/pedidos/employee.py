@@ -164,6 +164,49 @@ def assign_delivery(event, context):
         return json_response({'error': f'Error interno en deliver: {type(e).__name__}: {str(e)}'}, 500)
 
 
+def mark_delivered(event, context):
+    """
+    PUT /employee/order/{id}/delivered
+    Driver marks order as delivered to customer.
+    Sends ORDER.DELIVERED event (optional).
+    """
+    try:
+        if 'pathParameters' not in event or 'id' not in event['pathParameters']:
+            return json_response({'error': 'Parámetro de ruta faltante: {id}'}, 400)
+        order_id = event['pathParameters']['id']
+        
+        table = pedidos_table()
+        
+        # Update status to DELIVERED
+        response = table.update_item(
+            Key={'id': order_id},
+            UpdateExpression="SET #s = :status, deliveredAt = :now, updatedAt = :now",
+            ExpressionAttributeNames={'#s': 'status'},
+            ExpressionAttributeValues={
+                ':status': 'DELIVERED',
+                ':now': datetime.now().isoformat(),
+                ':current_status': 'DELIVERING'
+            },
+            ConditionExpression='attribute_exists(id) AND #s = :current_status',
+            ReturnValues='ALL_NEW'
+        )
+        
+        return json_response({
+            'message': 'Orden marcada como entregada',
+            'order': response['Attributes']
+        }, 200)
+        
+    except ClientError as e:
+        code = e.response.get('Error', {}).get('Code')
+        if code == 'ConditionalCheckFailedException':
+            return json_response({'error': 'Orden no encontrada o no está en estado DELIVERING'}, 400)
+        print(f"AWS ClientError in delivered: {repr(e)}")
+        return json_response({'error': f'Error AWS en delivered: {code}'}, 500)
+    except Exception as e:
+        print(f"Error marking delivered: {repr(e)}")
+        return json_response({'error': f'Error interno en delivered: {type(e).__name__}: {str(e)}'}, 500)
+
+
 def get_orders(event, context):
     """
     GET /employee/orders

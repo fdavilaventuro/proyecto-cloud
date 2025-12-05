@@ -5,7 +5,7 @@ import { useParams } from "next/navigation"
 import Header from "@/components/header"
 import LocationModal from "@/components/location-modal"
 import { getOrderStatus, OrderStatusResponse } from "@/lib/api/orders"
-import { CheckCircle, Clock, ChefHat, Bike, MapPin, AlertCircle } from "lucide-react"
+import { CheckCircle, Clock, ChefHat, Bike, MapPin, AlertCircle, Package } from "lucide-react"
 import Link from "next/link"
 
 const STATUS_STEPS = [
@@ -13,7 +13,8 @@ const STATUS_STEPS = [
     { id: "PROCESSING", label: "Procesando", icon: Clock, description: "Procesando tu pago" },
     { id: "PAID", label: "Confirmado", icon: CheckCircle, description: "Pago verificado correctamente" },
     { id: "PREPARING", label: "En Cocina", icon: ChefHat, description: "Estamos preparando tu pedido" },
-    { id: "READY", label: "Listo", icon: Bike, description: "Tu pedido está listo para entrega" },
+    { id: "READY", label: "Listo", icon: Package, description: "Tu pedido está listo para entrega" },
+    { id: "ON_DELIVERY", label: "En Reparto", icon: Bike, description: "Tu pedido está en camino" },
     { id: "DELIVERED", label: "Entregado", icon: MapPin, description: "¡Disfruta tu pedido!" },
 ]
 
@@ -46,7 +47,21 @@ export default function OrderTrackingPage() {
 
     const getCurrentStepIndex = () => {
         if (!order) return 0
-        return STATUS_STEPS.findIndex(step => step.id === order.status)
+        // Map backend statuses to frontend steps
+        const statusMap: Record<string, string> = {
+            "PENDING": "PENDING",
+            "PROCESSING": "PROCESSING",
+            "PAID": "PAID",
+            "IN_KITCHEN": "PREPARING",
+            "KITCHEN_READY": "PREPARING",
+            "PACKED": "READY", // Fix: Map PACKED to READY (Listo)
+            "READY": "READY",
+            "ON_DELIVERY": "ON_DELIVERY",
+            "DELIVERED": "DELIVERED"
+        }
+
+        const mappedStatus = statusMap[order.status] || order.status
+        return STATUS_STEPS.findIndex(step => step.id === mappedStatus)
     }
 
     const currentStepIndex = getCurrentStepIndex()

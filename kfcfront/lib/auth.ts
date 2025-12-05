@@ -5,7 +5,7 @@ export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
 }
 
-export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+export const API_BASE = "https://hvleepsc4d.execute-api.us-east-1.amazonaws.com/dev";
 
 export const getToken = () => {
     if (typeof window !== "undefined") {
