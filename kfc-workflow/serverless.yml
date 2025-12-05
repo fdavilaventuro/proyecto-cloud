@@ -67,16 +67,76 @@ stepFunctions:
             Choices:
               - Variable: "$.status"
                 StringEquals: "PAID"
-                Next: Pago Exitoso
+                Next: Esperar Cocina
             Default: Pago Fallido
-
-          Pago Exitoso:
-            Type: Succeed
 
           Pago Fallido:
             Type: Fail
             Error: PaymentError
             Cause: "El pago no fue autorizado."
+
+          Esperar Cocina:
+            Type: Task
+            Resource: arn:aws:states:::dynamodb:updateItem.waitForTaskToken
+            Parameters:
+              TableName: ${self:provider.environment.TABLE_NAME}
+              Key:
+                id:
+                  S.$: "$.id"
+              UpdateExpression: "SET kitchenToken = :token, #s = :status"
+              ExpressionAttributeNames:
+                "#s": "status"
+              ExpressionAttributeValues:
+                ":token":
+                  S.$: "$$.Task.Token"
+                ":status":
+                  S: "IN_KITCHEN"
+            Next: Esperar Empaquetado
+
+          Esperar Empaquetado:
+            Type: Task
+            Resource: arn:aws:states:::dynamodb:updateItem.waitForTaskToken
+            Parameters:
+              TableName: ${self:provider.environment.TABLE_NAME}
+              Key:
+                id:
+                  S.$: "$.id"
+              UpdateExpression: "SET packingToken = :token"
+              ExpressionAttributeValues:
+                ":token":
+                  S.$: "$$.Task.Token"
+            Next: Esperar Reparto
+
+          Esperar Reparto:
+            Type: Task
+            Resource: arn:aws:states:::dynamodb:updateItem.waitForTaskToken
+            Parameters:
+              TableName: ${self:provider.environment.TABLE_NAME}
+              Key:
+                id:
+                  S.$: "$.id"
+              UpdateExpression: "SET deliveryToken = :token"
+              ExpressionAttributeValues:
+                ":token":
+                  S.$: "$$.Task.Token"
+            Next: Esperar Entrega Final
+
+          Esperar Entrega Final:
+            Type: Task
+            Resource: arn:aws:states:::dynamodb:updateItem.waitForTaskToken
+            Parameters:
+              TableName: ${self:provider.environment.TABLE_NAME}
+              Key:
+                id:
+                  S.$: "$.id"
+              UpdateExpression: "SET finalDeliveryToken = :token"
+              ExpressionAttributeValues:
+                ":token":
+                  S.$: "$$.Task.Token"
+            Next: Fin
+
+          Fin:
+            Type: Succeed
 
 plugins:
   - serverless-step-functions

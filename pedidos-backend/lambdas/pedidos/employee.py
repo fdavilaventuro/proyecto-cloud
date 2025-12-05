@@ -1,8 +1,3 @@
-"""
-Employee-facing endpoints for manual order status updates.
-These are called by the employee frontend to transition orders through kitchen, packing, and delivery stages.
-Sends EventBridge events for email notifications.
-"""
 import json
 import os
 import boto3
@@ -13,7 +8,20 @@ from common.response import json_response
 
 # EventBridge client for sending notification events
 events = boto3.client('events')
+sf = boto3.client('stepfunctions')
 EVENT_BUS = os.environ.get('EVENT_BUS', 'orders-bus')
+
+
+def _resume_step_function(token, output):
+    """Helper to resume Step Function execution using a task token."""
+    if not token:
+        print("No task token found, skipping Step Function resume.")
+        return
+    try:
+        sf.send_task_success(taskToken=token, output=json.dumps(output))
+        print(f"Step Function resumed with token {token[:10]}...")
+    except Exception as e:
+        print(f"Error resuming Step Function: {e}")
 
 
 def mark_kitchen_ready(event, context):
@@ -32,24 +40,26 @@ def mark_kitchen_ready(event, context):
             Key={'id': order_id},
             UpdateExpression="SET #s = :status, updatedAt = :now",
             ExpressionAttributeNames={'#s': 'status'},
-            ConditionExpression='attribute_exists(id) AND #s = :current_status',
+            ConditionExpression='attribute_exists(id)', # Removed strict status check to allow flexibility with SF
             ExpressionAttributeValues={
                 ':status': 'KITCHEN_READY',
-                ':now': datetime.now().isoformat(),
-                ':current_status': 'PAID'
+                ':now': datetime.now().isoformat()
             },
             ReturnValues='ALL_NEW'
         )
         
+        attributes = response['Attributes']
+        _resume_step_function(attributes.get('kitchenToken'), {'status': 'KITCHEN_READY', 'id': order_id})
+        
         return json_response({
             'message': 'Orden marcada como lista en cocina',
-            'order': response['Attributes']
+            'order': attributes
         }, 200)
         
     except ClientError as e:
         code = e.response.get('Error', {}).get('Code')
         if code == 'ConditionalCheckFailedException':
-            return json_response({'error': 'Orden no encontrada o no está en estado PAID'}, 400)
+            return json_response({'error': 'Orden no encontrada'}, 400)
         print(f"AWS ClientError in kitchen-ready: {repr(e)}")
         return json_response({'error': f'Error AWS en kitchen-ready: {code}'}, 500)
     except Exception as e:
@@ -75,22 +85,24 @@ def mark_packed(event, context):
             ExpressionAttributeNames={'#s': 'status'},
             ExpressionAttributeValues={
                 ':status': 'PACKED',
-                ':now': datetime.now().isoformat(),
-                ':current_status': 'KITCHEN_READY'
+                ':now': datetime.now().isoformat()
             },
-            ConditionExpression='attribute_exists(id) AND #s = :current_status',
+            ConditionExpression='attribute_exists(id)',
             ReturnValues='ALL_NEW'
         )
         
+        attributes = response['Attributes']
+        _resume_step_function(attributes.get('packingToken'), {'status': 'PACKED', 'id': order_id})
+        
         return json_response({
             'message': 'Orden marcada como empacada',
-            'order': response['Attributes']
+            'order': attributes
         }, 200)
         
     except ClientError as e:
         code = e.response.get('Error', {}).get('Code')
         if code == 'ConditionalCheckFailedException':
-            return json_response({'error': 'Orden no encontrada o no está en estado KITCHEN_READY'}, 400)
+            return json_response({'error': 'Orden no encontrada'}, 400)
         print(f"AWS ClientError in packed: {repr(e)}")
         return json_response({'error': f'Error AWS en packed: {code}'}, 500)
     except Exception as e:
@@ -126,12 +138,14 @@ def assign_delivery(event, context):
             ExpressionAttributeValues={
                 ':status': 'DELIVERING',
                 ':driver': driver,
-                ':now': datetime.now().isoformat(),
-                ':current_status': 'PACKED'
+                ':now': datetime.now().isoformat()
             },
-            ConditionExpression='attribute_exists(id) AND #s = :current_status',
+            ConditionExpression='attribute_exists(id)',
             ReturnValues='ALL_NEW'
         )
+        
+        attributes = response['Attributes']
+        _resume_step_function(attributes.get('deliveryToken'), {'status': 'DELIVERING', 'id': order_id})
         
         # Send ORDER.READY event to EventBridge for email notification
         try:
@@ -150,13 +164,13 @@ def assign_delivery(event, context):
         
         return json_response({
             'message': f'Orden asignada a {driver} para entrega',
-            'order': response['Attributes']
+            'order': attributes
         }, 200)
         
     except ClientError as e:
         code = e.response.get('Error', {}).get('Code')
         if code == 'ConditionalCheckFailedException':
-            return json_response({'error': 'Orden no encontrada o no está en estado PACKED'}, 400)
+            return json_response({'error': 'Orden no encontrada'}, 400)
         print(f"AWS ClientError in deliver: {repr(e)}")
         return json_response({'error': f'Error AWS en deliver: {code}'}, 500)
     except Exception as e:
@@ -184,22 +198,24 @@ def mark_delivered(event, context):
             ExpressionAttributeNames={'#s': 'status'},
             ExpressionAttributeValues={
                 ':status': 'DELIVERED',
-                ':now': datetime.now().isoformat(),
-                ':current_status': 'DELIVERING'
+                ':now': datetime.now().isoformat()
             },
-            ConditionExpression='attribute_exists(id) AND #s = :current_status',
+            ConditionExpression='attribute_exists(id)',
             ReturnValues='ALL_NEW'
         )
         
+        attributes = response['Attributes']
+        _resume_step_function(attributes.get('finalDeliveryToken'), {'status': 'DELIVERED', 'id': order_id})
+        
         return json_response({
             'message': 'Orden marcada como entregada',
-            'order': response['Attributes']
+            'order': attributes
         }, 200)
         
     except ClientError as e:
         code = e.response.get('Error', {}).get('Code')
         if code == 'ConditionalCheckFailedException':
-            return json_response({'error': 'Orden no encontrada o no está en estado DELIVERING'}, 400)
+            return json_response({'error': 'Orden no encontrada'}, 400)
         print(f"AWS ClientError in delivered: {repr(e)}")
         return json_response({'error': f'Error AWS en delivered: {code}'}, 500)
     except Exception as e:

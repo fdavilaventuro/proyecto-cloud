@@ -33,6 +33,7 @@ provider:
     - Effect: Allow
       Action:
         - states:StartExecution
+        - states:SendTaskSuccess
       Resource:
         - arn:aws:states:${self:provider.region}:${file(../serverless.vars.yml):accountId}:stateMachine:*
     - Effect: Allow
