@@ -35,7 +35,12 @@ def lambda_handler(event, context):
     total = event.get('total', 0)
     client = event.get('client', '')
     
-    if 'Sin Fondos' in client or 'sin fondos' in client.lower():
+    # Handle client as dict or string
+    client_name = client
+    if isinstance(client, dict):
+        client_name = client.get('name', '')
+    
+    if 'Sin Fondos' in client_name or 'sin fondos' in client_name.lower():
         print(f"Pago RECHAZADO para orden {order_id} - Cliente: {client}, Total: {total}")
         # Actualizar estado a REJECTED
         max_retries = 3
